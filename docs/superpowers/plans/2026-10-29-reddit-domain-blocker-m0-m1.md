@@ -452,7 +452,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `export function init(env: { chrome, document }): Promise<void>`: builds the page, loads and renders the list, re-renders on `chrome.storage.onChanged` for the sync area.
   - `extension/options.html`: `lang="en"`, `<title>Reddit Domain Blocker options</title>`, one `<h1>`, `<main>`, a `<form>` with a visible `<label for="domain-input">Domain or URL</label>`, an input, and a green **Add** button (plus icon), a `role="status"` region and a `role="alert"` region. `options.css`: light and dark via `prefers-color-scheme`, the system sans stack, generous vertical row spacing, visible focus rings, secondary-grey and red and green button classes.
 
-- [ ] **Step 1: Write the failing tests** (jsdom):
+- [x] **Step 1: Write the failing tests** (jsdom):
   - `messageFor` cases for every outcome and reason above, including `kind` values
   - `renderList shows active domains only, sorted, with caption and th scope=col`
   - `Remove button: visible text "Remove", aria-label "Remove example.com", title "Archive example.com", contains an aria-hidden svg`
@@ -462,10 +462,10 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `clicking Remove sends domain/archive; the status region announces "Removed example.com"; focus moves to the next row's Remove button, or the input when none remain`
   - `an external storage change (a domain added elsewhere) re-renders the list without a reload`
   - `a malformed record in storage is ignored`
-- [ ] **Step 2: Run** `node --test test/options.test.js` → FAIL.
-- [ ] **Step 3: Implement** per the interfaces.
-- [ ] **Step 4: Run** → PASS, then `npm run build` produces `extension/options.js`.
-- [ ] **Step 5: Commit** `feat: add options page for adding and removing domains`.
+- [x] **Step 2: Run** `node --test test/options.test.js` → FAIL.
+- [x] **Step 3: Implement** per the interfaces.
+- [x] **Step 4: Run** → PASS, then `npm run build` produces `extension/options.js`.
+- [x] **Step 5: Commit** `feat: add options page for adding and removing domains`.
 
 ---
 
