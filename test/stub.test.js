@@ -35,9 +35,9 @@ test("renders hidden state text and buttons in a shadow root", () => {
   assert.match(group.textContent, /Hidden: example\.com/);
   assert.equal(buttons().length, 2);
   assert.ok(byLabel("Show post"));
-  assert.ok(byLabel("Unblock example.com"));
+  assert.ok(byLabel("Unblock domain example.com"));
   assert.equal(byLabel("Show post").textContent.trim(), "Show post");
-  assert.equal(byLabel("Unblock example.com").textContent.trim(), "Unblock domain");
+  assert.equal(byLabel("Unblock domain example.com").textContent.trim(), "Unblock domain");
 });
 
 test("buttons have icon, title and aria-label", () => {
@@ -52,7 +52,7 @@ test("buttons have icon, title and aria-label", () => {
 test("click Show post calls onShow; click Unblock calls onUnblock", () => {
   const { calls, byLabel } = setup();
   byLabel("Show post").click();
-  byLabel("Unblock example.com").click();
+  byLabel("Unblock domain example.com").click();
   assert.deepEqual(calls, ["show", "unblock"]);
 });
 
@@ -61,9 +61,13 @@ test("setState('revealed') swaps to Shown: text and Hide post button; Hide post 
   stub.setState("revealed");
   assert.match(root.querySelector("[role=group]").textContent, /Shown: example\.com/);
   assert.equal(byLabel("Show post"), undefined);
+  assert.equal(root.querySelector("[role=group]").getAttribute("aria-label"), "Shown post from example.com");
+  stub.setDomain("foo.org");
+  assert.equal(root.querySelector("[role=group]").getAttribute("aria-label"), "Shown post from foo.org");
+  stub.setDomain("example.com");
   byLabel("Hide post").click();
   assert.deepEqual(calls, ["hide"]);
-  assert.ok(byLabel("Unblock example.com"));
+  assert.ok(byLabel("Unblock domain example.com"));
   stub.setState("hidden");
   assert.match(root.querySelector("[role=group]").textContent, /Hidden: example\.com/);
 });
@@ -77,10 +81,10 @@ test("setTheme updates data-theme; setDomain updates text, group label, and Unbl
   stub.setDomain("foo.org");
   assert.match(group.textContent, /Hidden: foo\.org/);
   assert.equal(group.getAttribute("aria-label"), "Hidden post from foo.org");
-  const unblock = byLabel("Unblock foo.org");
+  const unblock = byLabel("Unblock domain foo.org");
   assert.ok(unblock);
-  assert.equal(unblock.getAttribute("title"), "Unblock foo.org");
-  assert.equal(byLabel("Unblock example.com"), undefined);
+  assert.equal(unblock.getAttribute("title"), "Unblock domain foo.org");
+  assert.equal(byLabel("Unblock domain example.com"), undefined);
 });
 
 test("domain text is never parsed as HTML", () => {
@@ -120,4 +124,16 @@ test("showError and focusPrimary never throw", () => {
   const { stub } = setup();
   assert.doesNotThrow(() => stub.showError(undefined));
   assert.doesNotThrow(() => stub.showError(null));
+});
+
+test("every button's aria-label contains its visible text in both states", () => {
+  const { stub, buttons } = setup();
+  for (const state of ["hidden", "revealed"]) {
+    stub.setState(state);
+    for (const b of buttons()) {
+      const visible = b.textContent.trim().toLowerCase();
+      assert.ok(visible);
+      assert.ok(b.getAttribute("aria-label").toLowerCase().includes(visible));
+    }
+  }
 });

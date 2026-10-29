@@ -129,17 +129,21 @@ export function createStub(document, { domain, theme, state, handlers }) {
     return button;
   }
 
+  function groupLabel() {
+    return `${currentState === "hidden" ? "Hidden" : "Shown"} post from ${currentDomain}`;
+  }
+
   let primary = null;
   let unblock = null;
 
   function render() {
     const hidden = currentState === "hidden";
-    group.setAttribute("aria-label", `Hidden post from ${currentDomain}`);
+    group.setAttribute("aria-label", groupLabel());
     label.textContent = `${hidden ? "Hidden" : "Shown"}: ${currentDomain}`;
     primary = hidden
       ? makeButton("eye", "Show post", "Show post", () => handlers.onShow())
       : makeButton("eye-off", "Hide post", "Hide post", () => handlers.onHide());
-    unblock = makeButton("arrow-back-up", "Unblock domain", `Unblock ${currentDomain}`, () =>
+    unblock = makeButton("arrow-back-up", "Unblock domain", `Unblock domain ${currentDomain}`, () =>
       handlers.onUnblock(),
     );
     actions.replaceChildren(primary, unblock);
@@ -156,10 +160,10 @@ export function createStub(document, { domain, theme, state, handlers }) {
     },
     setDomain(d) {
       currentDomain = d;
-      group.setAttribute("aria-label", `Hidden post from ${d}`);
+      group.setAttribute("aria-label", groupLabel());
       label.textContent = `${currentState === "hidden" ? "Hidden" : "Shown"}: ${d}`;
-      unblock.setAttribute("aria-label", `Unblock ${d}`);
-      unblock.title = `Unblock ${d}`;
+      unblock.setAttribute("aria-label", `Unblock domain ${d}`);
+      unblock.title = `Unblock domain ${d}`;
     },
     setTheme(t) {
       group.setAttribute("data-theme", t);
