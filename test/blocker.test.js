@@ -351,6 +351,33 @@ test("focus: hidden post hands focus to Show post; Show post -> Hide post; Hide 
   t.blocker.stop();
 });
 
+test("focus: a recycled post that changes state keeps focus on the stub's primary button", async () => {
+  const t = setup({ domains: ["example.com", "other.org"], posts: [{ id: "t3_a", href: "https://example.com/a" }] });
+  t.blocker.start();
+  const node = t.post("t3_a");
+  const stubEl = t.stubOf(node);
+  t.buttonIn(stubEl, "Show post").click();
+  t.buttonIn(stubEl, "Hide post").focus();
+  assert.equal(stubEl.shadowRoot.activeElement.textContent.trim(), "Hide post");
+
+  // revealed -> hidden
+  node.setAttribute("content-href", "https://other.org/b");
+  node.setAttribute("id", "t3_b");
+  await flush();
+  assert.ok(isHidden(node));
+  assert.equal(t.document.activeElement, stubEl);
+  assert.equal(stubEl.shadowRoot.activeElement?.textContent.trim(), "Show post");
+
+  // hidden -> revealed (back to the revealed id)
+  node.setAttribute("content-href", "https://example.com/a");
+  node.setAttribute("id", "t3_a");
+  await flush();
+  assert.ok(!isHidden(node));
+  assert.equal(t.document.activeElement, stubEl);
+  assert.equal(stubEl.shadowRoot.activeElement?.textContent.trim(), "Hide post");
+  t.blocker.stop();
+});
+
 test("focus: restoring a post whose stub held focus moves focus into the post", () => {
   const t = setup({ posts: [{ id: "t3_a", href: "https://example.com/a" }] });
   t.blocker.start();

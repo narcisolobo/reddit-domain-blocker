@@ -52,12 +52,12 @@ export function createBlocker({ document, adapter, getUrl, requestUnblock }) {
   }
 
   // Mark or unmark the targets for rec.state and keep the stub right before the first target.
-  function place(post, rec) {
+  // stubHadFocus must be read before any setState, which re-renders the stub's buttons.
+  function place(post, rec, stubHadFocus = document.activeElement === rec.stub.element) {
     const targets = adapter.hideTarget(post);
     const first = targets[0];
     if (!first || !first.parentNode) return;
     const focused = document.activeElement;
-    const stubHadFocus = focused === rec.stub.element;
     const hidden = rec.state === "hidden";
     const postHadFocus = hidden && Boolean(focused) && targets.some((t) => t.contains(focused));
     for (const t of rec.targets) if (!targets.includes(t)) t.removeAttribute(HIDDEN);
@@ -136,6 +136,7 @@ export function createBlocker({ document, adapter, getUrl, requestUnblock }) {
       if (rec) restore(post, rec, rec.id === id);
       return;
     }
+    const stubHadFocus = Boolean(rec) && document.activeElement === rec.stub.element;
     const state = isRevealed(post, id) ? "revealed" : "hidden";
     if (!rec) {
       const stub = createStub(document, { domain, theme, state, handlers: makeHandlers(post) });
@@ -147,7 +148,7 @@ export function createBlocker({ document, adapter, getUrl, requestUnblock }) {
       if (rec.state !== state) rec.stub.setState(state);
       Object.assign(rec, { id, href, domain, state });
     }
-    place(post, rec);
+    place(post, rec, stubHadFocus);
   }
 
   function postsIn(node) {
