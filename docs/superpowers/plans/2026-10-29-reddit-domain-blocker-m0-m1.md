@@ -280,7 +280,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
 - Consumes: `handleMessage` (Task 6); global `chrome` (injectable for tests via `export function init(chrome)`; the module calls `init(globalThis.chrome)` only when `chrome` exists).
 - Produces: `export function init(chromeApi): void`: registers `runtime.onMessage` (returns `true` and responds asynchronously with `handleMessage(msg, chromeApi.storage.sync)`) and `action.onClicked` → `runtime.openOptionsPage()`.
 
-- [ ] **Step 1: Write the failing tests**:
+- [x] **Step 1: Write the failing tests**:
   ```js
   test("add message writes sync storage and responds", async () => {
     const fake = createFakeChrome(); init(fake);
@@ -290,10 +290,10 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   });
   test("toolbar click opens the options page", () => { init(fake); fake.action.click(); assert.equal(fake.runtime.openOptionsPage.calls, 1); });
   ```
-- [ ] **Step 2: Run** `node --test test/background.test.js` → FAIL.
-- [ ] **Step 3: Implement** per the signature.
-- [ ] **Step 4: Run** → PASS, then `npm run build` produces `extension/background.js`.
-- [ ] **Step 5: Commit** `feat: add service worker message handling`.
+- [x] **Step 2: Run** `node --test test/background.test.js` → FAIL.
+- [x] **Step 3: Implement** per the signature.
+- [x] **Step 4: Run** → PASS, then `npm run build` produces `extension/background.js`.
+- [x] **Step 5: Commit** `feat: add service worker message handling`.
 
 ---
 
