@@ -31,7 +31,12 @@ The extension makes no network requests, collects nothing, and loads no remote c
 
 ## Building and installing
 
-Not available yet. Once there is code, this section will explain how to load it in Chrome with **Load unpacked** at `chrome://extensions`.
+```
+npm install
+npm run build
+```
+
+Then open `chrome://extensions`, turn on **Developer mode**, choose **Load unpacked**, and select the `extension/` folder. Run the tests with `npm test`.
 
 ## License
 

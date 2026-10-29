@@ -1,2 +1,6 @@
 .DS_Store
 .superpowers/
+node_modules/
+extension/content.js
+extension/background.js
+extension/options.js
