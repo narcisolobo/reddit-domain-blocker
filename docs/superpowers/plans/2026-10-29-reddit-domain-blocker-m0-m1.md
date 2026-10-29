@@ -139,7 +139,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `export function hostnameOf(href: string): string | null` (http/https only, lowercase, no trailing dot, `null` otherwise)
   - `export function findBlockingDomain(hostname: string, activeDomains: Iterable<string>): string | null` (the longest matching entry)
 
-- [ ] **Step 1: Write the failing tests**:
+- [x] **Step 1: Write the failing tests**:
   ```js
   test("normalizes a pasted URL", () =>
     assert.deepEqual(normalizeInput("https://www.example.com:8080/a/b?c=d#e"), { ok: true, domain: "example.com" }));
@@ -179,10 +179,10 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
     assert.equal(findBlockingDomain("example.com", []), null);
   });
   ```
-- [ ] **Step 2: Run** `node --test test/domain.test.js` → FAIL.
-- [ ] **Step 3: Implement** per the signatures. Use `new URL()` for parsing (prefix `https://` when the input has no `scheme://`); reject non-http(s) schemes; IP detection covers dotted IPv4 and bracketed IPv6.
-- [ ] **Step 4: Run** → PASS.
-- [ ] **Step 5: Commit** `feat: add domain normalization and matching`.
+- [x] **Step 2: Run** `node --test test/domain.test.js` → FAIL.
+- [x] **Step 3: Implement** per the signatures. Use `new URL()` for parsing (prefix `https://` when the input has no `scheme://`); reject non-http(s) schemes; IP detection covers dotted IPv4 and bracketed IPv6.
+- [x] **Step 4: Run** → PASS.
+- [x] **Step 5: Commit** `feat: add domain normalization and matching`.
 
 ---
 
