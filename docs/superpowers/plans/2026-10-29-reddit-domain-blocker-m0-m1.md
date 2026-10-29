@@ -424,17 +424,17 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `requestUnblock(domain)` sends `chrome.runtime.sendMessage({ type: "domain/archive", domain })`; any thrown error (including "Extension context invalidated.") resolves `{ ok: false }`.
   - URL changes: if `window.navigation` exists, listen to `currentchange`; also listen to `popstate`; fall back to a 500 ms interval comparing `location.href` (use what NOTES recommends first; the others are additive). Each calls `blocker.handleUrlChange()`.
 
-- [ ] **Step 1: Write the failing tests**:
+- [x] **Step 1: Write the failing tests**:
   - `first scan uses the stored list: a matching post present at start is hidden` (active + archived + malformed records in the fake sync area; only the active domain blocks)
   - `onChanged in sync updates all posts; local-area changes are ignored`
   - `archived or removed record restores posts`
   - `requestUnblock sends domain/archive and resolves the response`
   - `requestUnblock resolves { ok: false } after fake.runtime.invalidate()`, and the stub shows an error without throwing
   - `URL change via navigation currentchange triggers handleUrlChange` and `interval fallback triggers it when window.navigation is absent`
-- [ ] **Step 2: Run** `node --test test/content-index.test.js` → FAIL.
-- [ ] **Step 3: Implement** per the interface.
-- [ ] **Step 4: Run** → PASS, then `npm run build` produces `extension/content.js`.
-- [ ] **Step 5: Commit** `feat: wire content script to storage, messages, and navigation`.
+- [x] **Step 2: Run** `node --test test/content-index.test.js` → FAIL.
+- [x] **Step 3: Implement** per the interface.
+- [x] **Step 4: Run** → PASS, then `npm run build` produces `extension/content.js`.
+- [x] **Step 5: Commit** `feat: wire content script to storage, messages, and navigation`.
 
 ---
 
