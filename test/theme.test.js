@@ -77,3 +77,69 @@ test("watchTheme's returned function stops callbacks", async () => {
   await tick();
   assert.deepEqual(seen, []);
 });
+
+function bodylessDoc() {
+  const d = new JSDOM("<!doctype html><html></html>").window.document;
+  d.body?.remove();
+  return d;
+}
+
+function attachBody(d, style) {
+  const body = d.createElement("body");
+  if (style) body.setAttribute("style", style);
+  d.documentElement.appendChild(body);
+  return body;
+}
+
+test("watchTheme reacts to a body attached late", async () => {
+  const d = bodylessDoc();
+  assert.equal(d.body, null);
+  const seen = [];
+  const stop = watchTheme(d, (theme) => seen.push(theme));
+  attachBody(d, "background: rgb(11, 20, 22)");
+  await tick();
+  assert.deepEqual(seen, ["dark"]);
+  stop();
+});
+
+test("watchTheme observes style changes on a late body", async () => {
+  const d = bodylessDoc();
+  const seen = [];
+  const stop = watchTheme(d, (theme) => seen.push(theme));
+  const body = attachBody(d, "background: rgb(11, 20, 22)");
+  await tick();
+  body.setAttribute("style", "background: rgb(255, 255, 255)");
+  await tick();
+  assert.deepEqual(seen, ["dark", "light"]);
+  stop();
+});
+
+test("watchTheme disconnected before the body appears never calls back", async () => {
+  const d = bodylessDoc();
+  const seen = [];
+  const stop = watchTheme(d, (theme) => seen.push(theme));
+  stop();
+  attachBody(d, "background: rgb(11, 20, 22)");
+  await tick();
+  assert.deepEqual(seen, []);
+});
+
+test("detectTheme skips rgba(0, 0, 0, 0) and transparent backgrounds", () => {
+  assert.equal(detectTheme(doc('style="background: rgb(11, 20, 22)"', 'style="background: rgba(0, 0, 0, 0)"')), "dark");
+  assert.equal(detectTheme(doc('style="background: rgb(11, 20, 22)"', 'style="background: transparent"')), "dark");
+});
+
+test("detectTheme counts rgb(11 20 22 / 50%) as dark", () => {
+  assert.equal(detectTheme(doc("", 'style="background: rgb(11 20 22 / 50%)"')), "dark");
+});
+
+test("detectTheme skips rgb(11 20 22 / 0%)", () => {
+  assert.equal(detectTheme(doc('style="background: rgb(255, 255, 255)"', 'style="background: rgb(11 20 22 / 0%)"')), "light");
+});
+
+test("detectTheme returns light without a documentElement or defaultView", () => {
+  const d = bodylessDoc();
+  d.documentElement.remove();
+  assert.equal(detectTheme(d), "light");
+  assert.equal(detectTheme({ documentElement: {}, defaultView: null }), "light");
+});
