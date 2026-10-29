@@ -107,7 +107,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
 - Consumes: SVGs in `node_modules/@tabler/icons/icons/outline/`.
 - Produces: `export function icon(name: IconName, size?: number): string`, returning inline SVG markup with `aria-hidden="true"`, `focusable="false"`, `width`/`height` = `size` (default 16), `stroke="currentColor"`. `IconName` = `"plus" | "trash" | "eye" | "eye-off" | "ban" | "arrow-back-up"`. (`eye-off` is added to the spec's icon list for the collapse control; this plan's call.) `npm run gen-icons` regenerates `src/shared/icons.js`.
 
-- [ ] **Step 1: Write the failing test** `test/icons.test.js`:
+- [x] **Step 1: Write the failing test** `test/icons.test.js`:
   ```js
   for (const name of ["plus","trash","eye","eye-off","ban","arrow-back-up"]) {
     test(`icon(${name}) is decorative inline svg`, () => {
@@ -119,10 +119,10 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   test("size is applied", () => assert.match(icon("plus", 20), /width="20"/));
   test("unknown name throws", () => assert.throws(() => icon("nope")));
   ```
-- [ ] **Step 2: Run** `node --test test/icons.test.js` → FAIL.
-- [ ] **Step 3: Implement** `scripts/gen-icons.js`: read the six SVG files, emit `src/shared/icons.js` with the `icon()` function above. Create `THIRD_PARTY_LICENSES` with Tabler's copyright line and MIT text copied from `node_modules/@tabler/icons/LICENSE`.
-- [ ] **Step 4: Run** `npm run gen-icons && node --test test/icons.test.js` → PASS.
-- [ ] **Step 5: Commit** `feat: add bundled Tabler icons and third-party notice`.
+- [x] **Step 2: Run** `node --test test/icons.test.js` → FAIL.
+- [x] **Step 3: Implement** `scripts/gen-icons.js`: read the six SVG files, emit `src/shared/icons.js` with the `icon()` function above. Create `THIRD_PARTY_LICENSES` with Tabler's copyright line and MIT text copied from `node_modules/@tabler/icons/LICENSE`.
+- [x] **Step 4: Run** `npm run gen-icons && node --test test/icons.test.js` → PASS.
+- [x] **Step 5: Commit** `feat: add bundled Tabler icons and third-party notice`.
 
 ---
 
