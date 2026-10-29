@@ -31,8 +31,13 @@ function page() {
   return { dom, document: dom.window.document };
 }
 
-async function setup(items = {}) {
+async function setup(items = {}, { changeDelay = 0 } = {}) {
   const chrome = createFakeChrome();
+  if (changeDelay) {
+    const add = chrome.storage.onChanged.addListener;
+    chrome.storage.onChanged.addListener = (fn) =>
+      add((changes, area) => setTimeout(() => fn(changes, area), changeDelay));
+  }
   await chrome.storage.sync.set(items);
   chrome.runtime.setMessageHandler((msg) => handleMessage(msg, chrome.storage.sync));
   const { dom, document } = page();
@@ -267,4 +272,76 @@ test("a malformed record in storage is ignored", async () => {
     "other": { s: "a" },
   });
   assert.deepEqual([...document.querySelectorAll("td.domain")].map((t) => t.textContent), ["good.com"]);
+});
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+test("delayed onChanged after Remove ends with focus on the right Remove button", async () => {
+  const { document } = await setup({ "d:a.com": stored(), "d:b.com": stored(), "d:c.com": stored() }, { changeDelay: 20 });
+  const btn = document.querySelector('button[aria-label="Remove a.com"]');
+  btn.focus();
+  btn.click();
+  await sleep(80);
+  assert.equal(document.activeElement.getAttribute("aria-label"), "Remove b.com");
+  document.querySelector('button[aria-label="Remove c.com"]').focus();
+  document.querySelector('button[aria-label="Remove c.com"]').click();
+  await sleep(80);
+  assert.equal(document.activeElement.getAttribute("aria-label"), "Remove b.com");
+  document.querySelector('button[aria-label="Remove b.com"]').click();
+  await sleep(80);
+  assert.equal(document.activeElement, document.getElementById("domain-input"));
+});
+
+test("an external storage change keeps focus on the focused Remove button", async () => {
+  const { chrome, document } = await setup({ "d:a.com": stored(), "d:c.com": stored() });
+  document.querySelector('button[aria-label="Remove c.com"]').focus();
+  await chrome.storage.sync.set({ "d:b.com": stored() });
+  await settle();
+  assert.equal(document.querySelectorAll("td.domain").length, 3);
+  assert.equal(document.activeElement.getAttribute("aria-label"), "Remove c.com");
+});
+
+test("an external storage change does not steal focus or clear typed text in the input", async () => {
+  const { chrome, document } = await setup({ "d:a.com": stored() });
+  const input = document.getElementById("domain-input");
+  input.focus();
+  input.value = "partial.co";
+  await chrome.storage.sync.set({ "d:b.com": stored() });
+  await settle();
+  assert.equal(document.querySelectorAll("td.domain").length, 2);
+  assert.equal(document.activeElement, input);
+  assert.equal(input.value, "partial.co");
+});
+
+test("an externally removed focused row moves focus to the next row", async () => {
+  const { chrome, document } = await setup({ "d:a.com": stored(), "d:b.com": stored() });
+  document.querySelector('button[aria-label="Remove a.com"]').focus();
+  await chrome.storage.sync.remove("d:a.com");
+  await settle();
+  assert.equal(document.activeElement.getAttribute("aria-label"), "Remove b.com");
+});
+
+test("a slower earlier storage read does not overwrite a newer one", async () => {
+  const chrome = createFakeChrome();
+  await chrome.storage.sync.set({ "d:old.com": stored() });
+  const realGet = chrome.storage.sync.get.bind(chrome.storage.sync);
+  let calls = 0;
+  let releaseSlow;
+  chrome.storage.sync.get = async (keys) => {
+    calls += 1;
+    const snapshot = await realGet(keys);
+    if (calls === 2) await new Promise((r) => (releaseSlow = r));
+    return snapshot;
+  };
+  const { document } = page();
+  await init({ chrome, document }); // call 1
+  const set = chrome.storage.sync.set({ "d:slow.com": stored() }); // onChanged -> call 2 (stuck)
+  await set;
+  await settle();
+  await chrome.storage.sync.set({ "d:fast.com": stored() }); // call 3 (newer, completes)
+  await settle();
+  releaseSlow();
+  await settle();
+  const domains = [...document.querySelectorAll("td.domain")].map((t) => t.textContent);
+  assert.deepEqual(domains, ["fast.com", "old.com", "slow.com"]);
 });
