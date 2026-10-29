@@ -202,7 +202,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `export function recordsFromItems(items: Record<string, unknown>): DomainRecord[]` (skips anything `fromStored` rejects)
   - `export function activeDomains(records: DomainRecord[]): string[]`
 
-- [ ] **Step 1: Write the failing tests**:
+- [x] **Step 1: Write the failing tests**:
   ```js
   test("round trip, active omits x", () => {
     const rec = { domain:"example.com", status:"active", addedAt:1793297667000, updatedAt:1793297667000, archivedAt:null, source:"options" };
@@ -223,10 +223,10 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   });
   test("activeDomains filters archived", () => assert.deepEqual(activeDomains([active, archived]), ["example.com"]));
   ```
-- [ ] **Step 2: Run** `node --test test/records.test.js` → FAIL.
-- [ ] **Step 3: Implement** per the signatures.
-- [ ] **Step 4: Run** → PASS.
-- [ ] **Step 5: Commit** `feat: add compact domain record encoding`.
+- [x] **Step 2: Run** `node --test test/records.test.js` → FAIL.
+- [x] **Step 3: Implement** per the signatures.
+- [x] **Step 4: Run** → PASS.
+- [x] **Step 5: Commit** `feat: add compact domain record encoding`.
 
 ---
 
