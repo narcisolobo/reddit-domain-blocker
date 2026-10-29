@@ -360,7 +360,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `Stub = { element: HTMLElement, setState(s): void, setDomain(d): void, setTheme(t): void, showError(message: string): void, focusPrimary(): void }`
   - `element` is a custom host (`<div data-rdb-stub>`) with an open shadow root containing a `role="group"` bar labelled `Hidden post from <domain>`. State `hidden`: text `Hidden: <domain>`, buttons **Show post** (eye, grey outlined) and **Unblock domain** (arrow-back-up, grey outlined). State `revealed`: text `Shown: <domain>`, buttons **Hide post** (eye-off) and **Unblock domain**. Every button: icon, visible text, `title` and `aria-label` (`Show post`, `Hide post`, `Unblock <domain>`; each contains the visible text). `showError` writes into a `role="alert"` region inside the shadow root. Theme is a `data-theme` attribute on the group driving CSS custom properties (light and dark palettes, 4.5:1 text and 3:1 border contrast). The shadow root carries its own `<style>`; nothing leaks in or out. Dashed border, system font stack, visible focus ring.
 
-- [ ] **Step 1: Write the failing tests** (jsdom):
+- [x] **Step 1: Write the failing tests** (jsdom):
   - `renders hidden state text and buttons in a shadow root` (host `shadowRoot.querySelector('[role=group]')` has `aria-label` `Hidden post from example.com`; text `Hidden: example.com`; buttons named `Show post` and `Unblock example.com`)
   - `buttons have icon, title and aria-label` (each button contains an `svg[aria-hidden=true]` and a `title`)
   - `click Show post calls onShow; click Unblock calls onUnblock`
@@ -369,10 +369,10 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `showError renders role=alert text and clears when state changes`
   - `host styles do not leak: document-level CSS selecting 'button' does not apply` (assert the shadow root has its own style element and the buttons are not in the light DOM)
   - `focusPrimary focuses Show post in hidden state and Hide post in revealed state`
-- [ ] **Step 2: Run** `node --test test/stub.test.js` → FAIL.
-- [ ] **Step 3: Implement** per the signatures.
-- [ ] **Step 4: Run** → PASS.
-- [ ] **Step 5: Commit** `feat: add shadow-DOM stub for hidden posts`.
+- [x] **Step 2: Run** `node --test test/stub.test.js` → FAIL.
+- [x] **Step 3: Implement** per the signatures.
+- [x] **Step 4: Run** → PASS.
+- [x] **Step 5: Commit** `feat: add shadow-DOM stub for hidden posts`.
 
 ---
 
