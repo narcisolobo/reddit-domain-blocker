@@ -1,0 +1,73 @@
+import { normalizeInput } from "../shared/domain.js";
+import { keyFor, toStored, fromStored, recordsFromItems } from "../shared/records.js";
+
+function failureReason(err) {
+  return /quota/i.test(String(err?.message ?? err)) ? "quota" : "error";
+}
+
+async function readRecord(area, domain) {
+  const key = keyFor(domain);
+  const items = await area.get(key);
+  return fromStored(key, items?.[key]);
+}
+
+async function writeRecord(area, rec) {
+  await area.set({ [keyFor(rec.domain)]: toStored(rec) });
+}
+
+export async function addDomain(area, input, source, now = Date.now()) {
+  const norm = normalizeInput(input);
+  if (!norm.ok) return { ok: false, reason: norm.reason };
+  const domain = norm.domain;
+
+  try {
+    const existing = await readRecord(area, domain);
+    if (existing && existing.status === "active") {
+      return { ok: true, domain, outcome: "exists" };
+    }
+    if (existing) {
+      await writeRecord(area, { ...existing, status: "active", archivedAt: null, updatedAt: now });
+      return { ok: true, domain, outcome: "restored" };
+    }
+    await writeRecord(area, {
+      domain,
+      status: "active",
+      addedAt: now,
+      updatedAt: now,
+      archivedAt: null,
+      source,
+    });
+    return { ok: true, domain, outcome: "added" };
+  } catch (err) {
+    return { ok: false, reason: failureReason(err) };
+  }
+}
+
+export async function archiveDomain(area, domain, now = Date.now()) {
+  try {
+    const existing = await readRecord(area, domain);
+    if (!existing) return { ok: false, reason: "not-found" };
+    if (existing.status === "archived") {
+      return { ok: true, domain, outcome: "already-archived" };
+    }
+    await writeRecord(area, { ...existing, status: "archived", archivedAt: now, updatedAt: now });
+    return { ok: true, domain, outcome: "archived" };
+  } catch (err) {
+    return { ok: false, reason: failureReason(err) };
+  }
+}
+
+export async function listRecords(area) {
+  return recordsFromItems(await area.get(null));
+}
+
+export async function handleMessage(msg, area, now = Date.now()) {
+  switch (msg?.type) {
+    case "domain/add":
+      return addDomain(area, msg.input, msg.source, now);
+    case "domain/archive":
+      return archiveDomain(area, msg.domain, now);
+    default:
+      return { ok: false, reason: "error" };
+  }
+}
