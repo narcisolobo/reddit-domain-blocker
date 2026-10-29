@@ -388,7 +388,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `Blocker = { start(): void, stop(): void, setActiveDomains(domains: string[]): void, handleUrlChange(): void }`
   - Behavior: injects one `<style>` with `[data-rdb-hidden]{display:none !important}` into `document.documentElement`; marks each blocked post's `hideTarget` nodes with `data-rdb-hidden` and inserts a stub before the first target; never removes or moves a post node. `start()` scans all posts and starts a `MutationObserver` (childList + subtree, plus attributes on the adapter's link and id attributes) that processes only added nodes and changed posts, synchronously in the observer callback. A per-page-load `Map<postId, "revealed">`; revealed posts keep their stub in `revealed` state and are not re-hidden. While `adapter.isPostPage(getUrl())` is true nothing is hidden or restored; `handleUrlChange()` re-evaluates the URL and does a full rescan on leaving a post page. `setActiveDomains` rescans: hides new matches, restores posts whose domain is no longer blocked (remove marker and stub), updates a stub whose matching entry changed, and clears revealed state for restored posts. A post node reused for a different post (id or link changed) is re-evaluated, and its old stub is reused or removed.
 
-- [ ] **Step 1: Write the failing tests** (jsdom, new-Reddit fixture posts inserted into a listing):
+- [x] **Step 1: Write the failing tests** (jsdom, new-Reddit fixture posts inserted into a listing):
   - `hides a post whose host matches and inserts a stub before it` (post node still in the DOM, marked, stub is `previousElementSibling`)
   - `matches subdomains, not lookalikes`: `news.example.com` hidden for `example.com`; `notexample.com` untouched
   - `never hides posts with no outbound link` (self post, permalink crosspost)
@@ -405,10 +405,10 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `focus: when a post that contains document.activeElement is hidden, focus moves to the stub's Show post button; Show post moves focus to Hide post; Hide post returns it to Show post`
   - `Unblock calls requestUnblock(matchingEntry); on { ok: false } the stub shows an error and the post stays hidden`
   - `stop() disconnects the observer and removes the style, markers, and stubs`
-- [ ] **Step 2: Run** `node --test test/blocker.test.js` → FAIL.
-- [ ] **Step 3: Implement** per the interface. Keep a `WeakMap<Element, { stub: Stub, id: string | null, href: string | null, domain: string }>` per post; stub theme comes from `detectTheme`, updated through `watchTheme`.
-- [ ] **Step 4: Run** → PASS.
-- [ ] **Step 5: Commit** `feat: hide matching posts in place with live updates`.
+- [x] **Step 2: Run** `node --test test/blocker.test.js` → FAIL.
+- [x] **Step 3: Implement** per the interface. Keep a `WeakMap<Element, { stub: Stub, id: string | null, href: string | null, domain: string }>` per post; stub theme comes from `detectTheme`, updated through `watchTheme`.
+- [x] **Step 4: Run** → PASS.
+- [x] **Step 5: Commit** `feat: hide matching posts in place with live updates`.
 
 ---
 
