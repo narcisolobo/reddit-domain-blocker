@@ -77,7 +77,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
 - Produces: `npm test` (runs `node --test`), `npm run build` (esbuild, IIFE, entries `src/content/index.js`→`extension/content.js`, `src/background/index.js`→`extension/background.js`, `src/options/index.js`→`extension/options.js`; missing entry files are skipped with a warning until their task creates them).
 - Produces `createFakeChrome(): FakeChrome` in `test/helpers/fake-chrome.js`: `storage.sync` and `storage.local` with `get(keys|null)`, `set(obj)`, `remove(keys)` returning Promises; `storage.onChanged.addListener(fn)` called as `fn(changes, areaName)` with `{key: {oldValue, newValue}}`; `fake.storage.sync.failNextSet(error)`; `runtime.sendMessage(msg)` → delegates to a handler set by `fake.runtime.setMessageHandler(fn)`, rejects with `Error("Extension context invalidated.")` after `fake.runtime.invalidate()`; `runtime.onMessage.addListener(fn)` and `fake.runtime.dispatchMessage(msg)` → Promise of the `sendResponse` value; `runtime.openOptionsPage` and `action.onClicked.addListener` with `fake.action.click()`.
 
-- [ ] **Step 1: Write the failing test** `test/manifest.test.js`:
+- [x] **Step 1: Write the failing test** `test/manifest.test.js`:
   ```js
   test("manifest is MV3 with the spec's permissions", () => {
     const m = JSON.parse(readFileSync("extension/manifest.json", "utf8"));
@@ -91,10 +91,10 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
     assert.equal(m.options_ui.open_in_tab, true);
   });
   ```
-- [ ] **Step 2: Run** `npm test` → FAIL (no manifest).
-- [ ] **Step 3: Create** `package.json` (`"type": "module"`, `"license": "MIT"`, author "Narciso Lobo", scripts, devDependencies `esbuild`, `jsdom`, `@tabler/icons`), `extension/manifest.json` (name "Reddit Domain Blocker", `action: {}` with no popup, `options_ui: {page: "options.html", open_in_tab: true}`), `scripts/build.js`, and the fake-chrome helper described above. Run `npm install`.
-- [ ] **Step 4: Run** `npm test` → PASS. Run `npm run build` → exits 0 with "skipped" warnings.
-- [ ] **Step 5: Commit** `chore: scaffold extension, build, and test helpers`.
+- [x] **Step 2: Run** `npm test` → FAIL (no manifest).
+- [x] **Step 3: Create** `package.json` (`"type": "module"`, `"license": "MIT"`, author "Narciso Lobo", scripts, devDependencies `esbuild`, `jsdom`, `@tabler/icons`), `extension/manifest.json` (name "Reddit Domain Blocker", `action: {}` with no popup, `options_ui: {page: "options.html", open_in_tab: true}`), `scripts/build.js`, and the fake-chrome helper described above. Run `npm install`.
+- [x] **Step 4: Run** `npm test` → PASS. Run `npm run build` → exits 0 with "skipped" warnings.
+- [x] **Step 5: Commit** `chore: scaffold extension, build, and test helpers`.
 
 ---
 
