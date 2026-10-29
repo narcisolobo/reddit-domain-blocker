@@ -244,7 +244,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `export function listRecords(area): Promise<DomainRecord[]>`
   - `export function handleMessage(msg, area, now?: number): Promise<object>` where `msg` is `{ type: "domain/add", input, source }` or `{ type: "domain/archive", domain }`; unknown types resolve `{ ok: false, reason: "error" }`.
 
-- [ ] **Step 1: Write the failing tests** (using `createFakeChrome().storage.sync`):
+- [x] **Step 1: Write the failing tests** (using `createFakeChrome().storage.sync`):
   ```js
   test("add stores a compact active record", async () => {
     const r = await addDomain(area, "https://www.thedailybeast.com/x?y=1", "options", 1000);
@@ -264,10 +264,10 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   test("any other write failure is reason error", async () => {});
   test("handleMessage routes add and archive and rejects unknown types", async () => {});
   ```
-- [ ] **Step 2: Run** `node --test test/blocklist.test.js` → FAIL.
-- [ ] **Step 3: Implement** per the signatures. Quota detection: error message matches `/quota/i`.
-- [ ] **Step 4: Run** → PASS.
-- [ ] **Step 5: Commit** `feat: add blocklist add and archive operations`.
+- [x] **Step 2: Run** `node --test test/blocklist.test.js` → FAIL.
+- [x] **Step 3: Implement** per the signatures. Quota detection: error message matches `/quota/i`.
+- [x] **Step 4: Run** → PASS.
+- [x] **Step 5: Commit** `feat: add blocklist add and archive operations`.
 
 ---
 
