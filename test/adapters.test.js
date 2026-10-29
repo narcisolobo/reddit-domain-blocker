@@ -133,3 +133,18 @@ test("isPostPage", () => {
     assert.equal(adapter.isPostPage("not a url"), false);
   }
 });
+
+test("isPost recognizes the post element itself, not its wrapper or other nodes", () => {
+  const np = newPost("new-link");
+  assert.equal(newAdapter.isPost(np), true);
+  assert.equal(newAdapter.isPost(np.parentElement), false);
+  assert.equal(newAdapter.isPost(np.querySelector("a")), false);
+  const op = oldPost("old-link");
+  assert.equal(oldAdapter.isPost(op), true);
+  assert.equal(oldAdapter.isPost(op.nextElementSibling), false);
+  assert.equal(oldAdapter.isPost(op.parentElement), false);
+  for (const adapter of [newAdapter, oldAdapter]) {
+    assert.equal(adapter.isPost(np.ownerDocument.createTextNode("x")), false);
+    assert.equal(adapter.isPost(null), false);
+  }
+});

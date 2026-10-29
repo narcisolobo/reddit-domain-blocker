@@ -19,10 +19,18 @@ function isPostPage(url) {
   return POST_PATH.test(path);
 }
 
+function matcher(selector) {
+  return (node) => Boolean(node && node.nodeType === 1 && node.matches(selector));
+}
+
+const NEW_POST = "shreddit-post";
+const OLD_POST = "div.thing.link";
+
 const newAdapter = {
   name: "new",
   observedAttributes: ["content-href", "id"],
-  findPosts: (root) => Array.from(root.querySelectorAll("shreddit-post")),
+  findPosts: (root) => Array.from(root.querySelectorAll(NEW_POST)),
+  isPost: matcher(NEW_POST),
   postInfo: (el) => ({
     id: el.getAttribute("id"),
     href: outboundHref(el.getAttribute("content-href")),
@@ -34,7 +42,8 @@ const newAdapter = {
 const oldAdapter = {
   name: "old",
   observedAttributes: ["data-url", "data-fullname"],
-  findPosts: (root) => Array.from(root.querySelectorAll("div.thing.link")),
+  findPosts: (root) => Array.from(root.querySelectorAll(OLD_POST)),
+  isPost: matcher(OLD_POST),
   postInfo: (el) => ({
     id: el.getAttribute("data-fullname"),
     href: outboundHref(el.getAttribute("data-url")),
