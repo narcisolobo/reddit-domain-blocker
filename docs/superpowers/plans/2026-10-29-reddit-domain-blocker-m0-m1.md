@@ -57,7 +57,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
 - [ ] **Step 1: Load the Chrome tools** with one ToolSearch call (`tabs_context_mcp`, `navigate`, `read_page`, `get_page_text`, `javascript_tool`, `tabs_create_mcp`, `tabs_close_mcp`), then `tabs_context_mcp`. Open a new tab; do not reuse the user's tabs. If the tools are unavailable, ask the user to paste each element's outer HTML from DevTools instead.
 - [ ] **Step 2: Record the new-Reddit post element** at `https://www.reddit.com/r/news/`: tag, every attribute that carries the outbound link (`content-href` expected), the post id (`id`, `post-id`, or similar), post type, permalink, and how the list is nested (container, whether `shreddit-post` sits in an `article` or `faceplate` wrapper that should be hidden instead). Save one link post, one self post, one gallery or image post as `new-*.html`.
 - [ ] **Step 3: Record the old-Reddit post element** at `https://old.reddit.com/r/news/`: `.thing` attributes (`data-url`, `data-fullname`, `data-domain`, `data-permalink`), and which node to hide (the `.thing` and its adjacent `.clearleft` spacer). Save one link and one self post as `old-*.html`.
-- [ ] **Step 4: Record cross-posts** on both sites (find one in `r/all`): what the link attribute holds, whether the original link is exposed anywhere in the node. Save as `new-crosspost.html` and `old-crosspost.html`. The plan's default is "treat a permalink as no outbound link".
+- [ ] **Step 4: Record cross-posts** on both sites (`r/all` is deprecated; look in the home feed, `r/popular`, or a busy subreddit): what the link attribute holds, whether the original link is exposed anywhere in the node. Save as `new-crosspost.html` and `old-crosspost.html`. The plan's default is "treat a permalink as no outbound link".
 - [ ] **Step 5: Record page types and URLs**: listing, subreddit, search, profile (`/user/<name>/submitted`), post page, and the new-Reddit overlay case if it exists (open a post from a listing; note URL and whether the listing stays in the DOM). Also note any related-post lists on post pages.
 - [ ] **Step 6: Record navigation**: on new Reddit, click between a listing and a post and back; report whether the page reloads, whether `window.navigation` exists and fires `navigate`/`currentchange`, and whether `popstate` fires. This decides Task 12's URL-change detection.
 - [ ] **Step 7: Record the theme signal** on both sites (class or attribute on `html`/`body`, or a CSS color-scheme). Ask the user to switch Reddit's theme to the opposite of the OS setting once and record how the signal changes. Record the old-Reddit behavior with no theme control (expected: always light).
@@ -314,7 +314,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
 - [ ] **Step 1: Write the failing tests** using jsdom to load each fixture. Names and assertions (selectors and attribute names come from `NOTES.md`):
   - `new: link post exposes id and outbound href` (`postInfo(fixture).href` equals the fixture's real link; `id` equals its post id)
   - `new: self post, gallery post, and crosspost have href null`
-  - `old: link post exposes id (data-fullname) and href (data-url)`; `old: self post and crosspost have href null`
+  - `old: link post exposes id (data-fullname) and href (data-url)`; `old: self post and gallery post have href null`; `old: crosspost href comes from data-url (null in the fixture because the original is Reddit-hosted; with data-url set to an external URL it returns that URL)`
   - `hideTarget returns the post node itself (new) and node plus spacer (old)`
   - `findPosts finds every post under a root and none in an empty root`
   - `href null for hostile values`: set the link attribute to each of `""`, `"/r/x/comments/1/t/"`, `"javascript:alert(1)"`, `"mailto:a@b.c"`, `"https://i.redd.it/x.png"`, remove the attribute entirely → `null` each time
@@ -334,7 +334,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
 
 **Interfaces:**
 - Produces:
-  - `export function detectTheme(document: Document): "light" | "dark"`: uses the signal recorded in NOTES; if none is present, falls back to the luminance of the computed background color of `body` (dark when luminance < 0.5).
+  - `export function detectTheme(document: Document): "light" | "dark"`: uses the signal recorded in NOTES; primary signal on new Reddit is the `theme-dark` class on `html` (NOTES); if absent, falls back to the computed `color-scheme` of `html` (`dark` → dark), then to the luminance of the first non-transparent computed background among `body` and `html` (dark when luminance < 0.5). Body is transparent on new Reddit, so `body` alone is not enough.
   - `export function watchTheme(document: Document, callback: (theme: "light"|"dark") => void): () => void`: a `MutationObserver` on the attributes NOTES names (on `documentElement` and `body`); calls back only when the theme changes; the returned function disconnects.
 
 - [ ] **Step 1: Write the failing tests** (jsdom documents built from the signals in NOTES):
