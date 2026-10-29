@@ -311,7 +311,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `export function pickAdapter(hostname: string): Adapter` (`old.reddit.com` → old, otherwise new)
   - `postInfo.href` is the outbound link only when it is an `http(s)` URL whose host is not a protected Reddit domain; otherwise `null` (permalinks, relative URLs, `javascript:`/`mailto:`, empty).
 
-- [ ] **Step 1: Write the failing tests** using jsdom to load each fixture. Names and assertions (selectors and attribute names come from `NOTES.md`):
+- [x] **Step 1: Write the failing tests** using jsdom to load each fixture. Names and assertions (selectors and attribute names come from `NOTES.md`):
   - `new: link post exposes id and outbound href` (`postInfo(fixture).href` equals the fixture's real link; `id` equals its post id)
   - `new: self post, gallery post, and crosspost have href null`
   - `old: link post exposes id (data-fullname) and href (data-url)`; `old: self post and gallery post have href null`; `old: crosspost href comes from data-url (null in the fixture because the original is Reddit-hosted; with data-url set to an external URL it returns that URL)`
@@ -319,10 +319,10 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `findPosts finds every post under a root and none in an empty root`
   - `href null for hostile values`: set the link attribute to each of `""`, `"/r/x/comments/1/t/"`, `"javascript:alert(1)"`, `"mailto:a@b.c"`, `"https://i.redd.it/x.png"`, remove the attribute entirely → `null` each time
   - `isPostPage`: true for `https://www.reddit.com/r/news/comments/abc123/some_title/`, `https://old.reddit.com/r/news/comments/abc123/x/`, and `.../comments/abc123/`; false for `/`, `/r/news/`, `/r/all/top/?t=day`, `/user/x/submitted/`, `/search/?q=comments`, `/r/comments/` (subreddit named "comments")
-- [ ] **Step 2: Run** `node --test test/adapters.test.js` → FAIL.
-- [ ] **Step 3: Implement** per the signatures. `isPostPage` matches `/comments/<id>` as a path segment pair (`/\/comments\/[a-z0-9]+(\/|$)/i`) against the URL path only.
-- [ ] **Step 4: Run** → PASS.
-- [ ] **Step 5: Commit** `feat: add new and old Reddit post adapters`.
+- [x] **Step 2: Run** `node --test test/adapters.test.js` → FAIL.
+- [x] **Step 3: Implement** per the signatures. `isPostPage` matches `/comments/<id>` as a path segment pair (`/\/comments\/[a-z0-9]+(\/|$)/i`) against the URL path only.
+- [x] **Step 4: Run** → PASS.
+- [x] **Step 5: Commit** `feat: add new and old Reddit post adapters`.
 
 ---
 
