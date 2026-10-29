@@ -74,12 +74,21 @@ test("onChanged in sync updates all posts; local-area changes are ignored", asyn
       { id: "t3_b", href: "https://example.com/b" },
     ],
   });
+  const area = t.fake.storage.sync;
+  const realGet = area.get.bind(area);
+  let reads = 0;
+  area.get = async (keys) => {
+    reads += 1;
+    return realGet(keys);
+  };
   assert.equal(t.isHidden("t3_a"), false);
   await t.fake.storage.local.set({ "d:example.com": rec() });
   await flush();
+  assert.equal(reads, 0, "local change must not re-read sync");
   assert.equal(t.isHidden("t3_a"), false);
-  await t.fake.storage.sync.set({ "d:example.com": rec() });
+  await area.set({ "d:example.com": rec() });
   await flush();
+  assert.equal(reads, 1, "sync change must re-read");
   assert.equal(t.isHidden("t3_a"), true);
   assert.equal(t.isHidden("t3_b"), true);
 });
@@ -196,13 +205,33 @@ test("a non-object or malformed response resolves { ok: false }", async () => {
   assert.ok(stub.shadowRoot.querySelector("[role=alert]").textContent.length > 0);
 });
 
-test("URL change via navigation currentchange triggers handleUrlChange", async () => {
-  const t = await setup({
-    items: { "d:example.com": rec() },
-    url: POST_PAGE,
-    withNavigation: true,
-  });
-  // leaving the post page rescans: add a post while on the post page (not hidden)
+function spyUrlChanges(t) {
+  const calls = { n: 0 };
+  const real = t.blocker.handleUrlChange.bind(t.blocker);
+  t.blocker.handleUrlChange = () => {
+    calls.n += 1;
+    return real();
+  };
+  return calls;
+}
+
+const OTHER_LISTING = "https://www.reddit.com/r/pics/";
+
+test("URL change via navigation currentchange triggers handleUrlChange only when href changed", async () => {
+  const t = await setup({ items: { "d:example.com": rec() }, url: LISTING, withNavigation: true });
+  const calls = spyUrlChanges(t);
+  t.navigation.dispatchEvent(new Event("currentchange"));
+  assert.equal(calls.n, 0);
+  t.location.href = OTHER_LISTING;
+  t.navigation.dispatchEvent(new Event("currentchange"));
+  assert.equal(calls.n, 1);
+  t.navigation.dispatchEvent(new Event("currentchange"));
+  assert.equal(calls.n, 1);
+  assert.equal(t.intervals.length, 0);
+});
+
+test("leaving a post page via currentchange rescans", async () => {
+  const t = await setup({ items: { "d:example.com": rec() }, url: POST_PAGE });
   const feed = t.document.querySelector("shreddit-feed");
   feed.insertAdjacentHTML("beforeend", article("t3_n", "https://example.com/n"));
   await flush();
@@ -210,35 +239,31 @@ test("URL change via navigation currentchange triggers handleUrlChange", async (
   t.location.href = LISTING;
   t.navigation.dispatchEvent(new Event("currentchange"));
   assert.equal(t.isHidden("t3_n"), true);
-  assert.equal(t.intervals.length, 0);
 });
 
-test("interval fallback triggers it when window.navigation is absent", async () => {
-  const t = await setup({
-    items: { "d:example.com": rec() },
-    url: POST_PAGE,
-    withNavigation: false,
-  });
-  const feed = t.document.querySelector("shreddit-feed");
-  feed.insertAdjacentHTML("beforeend", article("t3_n", "https://example.com/n"));
-  await flush();
-  assert.equal(t.isHidden("t3_n"), false);
+test("interval fallback triggers handleUrlChange only when href changed, when window.navigation is absent", async () => {
+  const t = await setup({ items: { "d:example.com": rec() }, url: LISTING, withNavigation: false });
+  const calls = spyUrlChanges(t);
   assert.equal(t.intervals.length, 1);
   assert.equal(t.intervals[0].ms, 500);
   t.intervals[0].fn();
-  assert.equal(t.isHidden("t3_n"), false);
-  t.location.href = LISTING;
+  assert.equal(calls.n, 0);
+  t.location.href = OTHER_LISTING;
   t.intervals[0].fn();
-  assert.equal(t.isHidden("t3_n"), true);
+  assert.equal(calls.n, 1);
+  t.intervals[0].fn();
+  assert.equal(calls.n, 1);
 });
 
 test("popstate triggers handleUrlChange", async () => {
   const t = await setup({ items: { "d:example.com": rec() }, url: POST_PAGE });
+  const calls = spyUrlChanges(t);
   const feed = t.document.querySelector("shreddit-feed");
   feed.insertAdjacentHTML("beforeend", article("t3_n", "https://example.com/n"));
   await flush();
   t.location.href = LISTING;
   t.target.dispatchEvent(new Event("popstate"));
+  assert.equal(calls.n, 1);
   assert.equal(t.isHidden("t3_n"), true);
 });
 
