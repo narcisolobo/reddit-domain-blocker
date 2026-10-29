@@ -1,6 +1,8 @@
 import { normalizeInput } from "../shared/domain.js";
 import { keyFor, toStored, fromStored, recordsFromItems } from "../shared/records.js";
 
+const SOURCES = ["options", "context-menu", "stub", "import"];
+
 function failureReason(err) {
   return /quota/i.test(String(err?.message ?? err)) ? "quota" : "error";
 }
@@ -18,6 +20,7 @@ async function writeRecord(area, rec) {
 export async function addDomain(area, input, source, now = Date.now()) {
   const norm = normalizeInput(input);
   if (!norm.ok) return { ok: false, reason: norm.reason };
+  if (!SOURCES.includes(source)) return { ok: false, reason: "error" };
   const domain = norm.domain;
 
   try {

@@ -102,3 +102,32 @@ test("handleMessage routes add and archive and rejects unknown types", async () 
   assert.deepEqual(await handleMessage({ type: "bogus" }, area), { ok: false, reason: "error" });
   assert.deepEqual(await handleMessage(undefined, area), { ok: false, reason: "error" });
 });
+
+test("missing or unknown source is rejected and writes nothing", async () => {
+  for (const source of [undefined, "bogus", "toString", "__proto__"]) {
+    assert.deepEqual(await addDomain(area, "a.com", source, 1), { ok: false, reason: "error" });
+    assert.deepEqual(await area.get(null), {});
+  }
+  const viaMessage = await handleMessage({ type: "domain/add", input: "a.com" }, area, 1);
+  assert.deepEqual(viaMessage, { ok: false, reason: "error" });
+  assert.deepEqual(await area.get(null), {});
+});
+
+test("failed quota write on add leaves storage empty", async () => {
+  area.failNextSet(new Error("quota exceeded"));
+  assert.deepEqual(await addDomain(area, "a.com", "options", 1), { ok: false, reason: "quota" });
+  assert.deepEqual(await area.get(null), {});
+});
+
+test("failed archive leaves the active record intact", async () => {
+  await addDomain(area, "a.com", "options", 1000);
+  area.failNextSet(new Error("boom"));
+  assert.deepEqual(await archiveDomain(area, "a.com", 2000), { ok: false, reason: "error" });
+  assert.deepEqual(await stored("a.com"), { s: "a", c: 1000, u: 1000, o: "o" });
+});
+
+test("handleMessage rejects null and string messages", async () => {
+  assert.deepEqual(await handleMessage(null, area), { ok: false, reason: "error" });
+  assert.deepEqual(await handleMessage("domain/add", area), { ok: false, reason: "error" });
+  assert.deepEqual(await area.get(null), {});
+});
