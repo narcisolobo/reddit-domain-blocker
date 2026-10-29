@@ -1,3 +1,6 @@
+// NOTE: onChanged fires synchronously inside set()/remove() and also for writes
+// that change nothing. Real Chrome fires it asynchronously and only for keys
+// whose value changed, so tests must not depend on that ordering.
 function createArea(name, onChanged) {
   let data = {};
   let nextSetError = null;

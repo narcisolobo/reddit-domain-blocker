@@ -42,13 +42,8 @@ export async function init({ chrome, document, location, window }) {
     }
   }
 
-  try {
-    blocker.setActiveDomains(await readDomains(chrome));
-  } catch {
-    // Start with an empty list.
-  }
-  blocker.start();
-
+  // Register before the first read so a write landing during it is not missed;
+  // the sequence token in refresh() keeps the newest read authoritative.
   try {
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName !== "sync") return;
@@ -61,6 +56,9 @@ export async function init({ chrome, document, location, window }) {
   } catch {
     // Ignore.
   }
+
+  await refresh();
+  blocker.start();
 
   let lastHref = location.href;
   const onUrl = () => {

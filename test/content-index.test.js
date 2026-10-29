@@ -22,9 +22,10 @@ function article(id, href) {
   return el.outerHTML;
 }
 
-async function setup({ items = {}, posts = [], withNavigation = true, url = LISTING } = {}) {
+async function setup({ items = {}, posts = [], withNavigation = true, url = LISTING, prepare } = {}) {
   const fake = createFakeChrome();
   await fake.storage.sync.set(items);
+  if (prepare) prepare(fake);
   const html = `<!doctype html><html class="theme-light"><head></head><body><main><shreddit-feed>${posts
     .map((p) => article(p.id, p.href))
     .join("")}</shreddit-feed></main></body></html>`;
@@ -91,6 +92,37 @@ test("onChanged in sync updates all posts; local-area changes are ignored", asyn
   assert.equal(reads, 1, "sync change must re-read");
   assert.equal(t.isHidden("t3_a"), true);
   assert.equal(t.isHidden("t3_b"), true);
+});
+
+test("a sync write landing during the first read is not missed", async () => {
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  let fakeRef;
+  const pending = setup({
+    posts: [{ id: "t3_a", href: "https://example.com/a" }],
+    prepare: (fake) => {
+      fakeRef = fake;
+      const area = fake.storage.sync;
+      const realGet = area.get.bind(area);
+      let calls = 0;
+      area.get = async (keys) => {
+        calls += 1;
+        if (calls > 1) return realGet(keys);
+        const snapshot = await realGet(keys); // taken before the write below
+        await gate;
+        return snapshot;
+      };
+    },
+  });
+  await flush();
+  await fakeRef.storage.sync.set({ "d:example.com": rec() });
+  await flush();
+  release();
+  const t = await pending;
+  await flush();
+  assert.equal(t.isHidden("t3_a"), true);
 });
 
 test("archived or removed record restores posts", async () => {
