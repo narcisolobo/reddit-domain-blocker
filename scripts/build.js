@@ -1,5 +1,5 @@
 import { build } from "esbuild";
-import { existsSync } from "node:fs";
+import { copyFileSync, existsSync } from "node:fs";
 
 const entries = [
   ["src/content/index.js", "extension/content.js"],
@@ -15,3 +15,6 @@ for (const [entry, outfile] of entries) {
   await build({ entryPoints: [entry], outfile, bundle: true, format: "iife", target: "chrome120" });
   console.log(`built ${outfile}`);
 }
+
+copyFileSync("THIRD_PARTY_LICENSES", "extension/THIRD_PARTY_LICENSES");
+console.log("copied extension/THIRD_PARTY_LICENSES");

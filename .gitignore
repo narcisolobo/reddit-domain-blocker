@@ -4,3 +4,4 @@ node_modules/
 extension/content.js
 extension/background.js
 extension/options.js
+extension/THIRD_PARTY_LICENSES
