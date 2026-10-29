@@ -2,8 +2,24 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Reddit Domain Blocker options</title>
+  <link rel="stylesheet" href="options.css">
 </head>
 <body>
+  <main>
+    <h1>Reddit Domain Blocker</h1>
+    <form id="add-form" novalidate>
+      <label for="domain-input">Domain or URL</label>
+      <div class="form-row">
+        <input id="domain-input" name="domain" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="example.com">
+        <button type="submit" class="btn btn-add" id="add-button"></button>
+      </div>
+    </form>
+    <div id="status" role="status" class="message message-status"></div>
+    <div id="error" role="alert" class="message message-error"></div>
+    <section id="list" aria-label="Blocked domains list"></section>
+  </main>
+  <script src="options.js"></script>
 </body>
 </html>
