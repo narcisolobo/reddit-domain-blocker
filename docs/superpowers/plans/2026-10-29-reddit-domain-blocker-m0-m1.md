@@ -337,13 +337,13 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `export function detectTheme(document: Document): "light" | "dark"`: uses the signal recorded in NOTES; primary signal on new Reddit is the `theme-dark` class on `html` (NOTES); if absent, falls back to the computed `color-scheme` of `html` (`dark` → dark), then to the luminance of the first non-transparent computed background among `body` and `html` (dark when luminance < 0.5). Body is transparent on new Reddit, so `body` alone is not enough.
   - `export function watchTheme(document: Document, callback: (theme: "light"|"dark") => void): () => void`: a `MutationObserver` on the attributes NOTES names (on `documentElement` and `body`); calls back only when the theme changes; the returned function disconnects.
 
-- [ ] **Step 1: Write the failing tests** (jsdom documents built from the signals in NOTES):
+- [x] **Step 1: Write the failing tests** (jsdom documents built from the signals in NOTES):
   - `detectTheme returns dark for the dark signal` / `light for the light signal` / `light when no signal and body background is white` / `dark when no signal and body background is rgb(11, 20, 22)`
   - `watchTheme calls back once on a change, not on unrelated attribute edits`, and `returned function stops callbacks`
-- [ ] **Step 2: Run** `node --test test/theme.test.js` → FAIL.
-- [ ] **Step 3: Implement** per the signatures.
-- [ ] **Step 4: Run** → PASS.
-- [ ] **Step 5: Commit** `feat: detect Reddit's current theme`.
+- [x] **Step 2: Run** `node --test test/theme.test.js` → FAIL.
+- [x] **Step 3: Implement** per the signatures.
+- [x] **Step 4: Run** → PASS.
+- [x] **Step 5: Commit** `feat: detect Reddit's current theme`.
 
 ---
 
