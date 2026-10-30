@@ -65,3 +65,16 @@ Seen on `https://old.reddit.com/r/news/` (25 posts, all links):
 `<shreddit-post` is present in the server-rendered HTML on both a post page and a subreddit listing (verified in "View page source"; the listing's first post is already in the HTML with `content-href` and `id` set). So blocked posts exist in the first HTML Reddit sends, and a cold page load can paint them before the content script hides them. The flash is measured live in Task 14.
 
 RES is installed on purpose but is in maintenance-only mode and no longer works fully. It adds `res-*` classes and, on old Reddit, extra markup inside `.thing` entries (such as `.RESUserTag`). Test with it on, since that is the owner's setup, but nothing in the design depends on it.
+
+## M1 verification
+
+Run by the owner in their own Chrome with `extension/` loaded unpacked (the automation browser cannot open reddit.com or `chrome://extensions`), blocking `thedailybeast.com` and `newsweek.com`. Results are reported by the owner; DevTools attribute edits were done on a live post.
+
+| Spec item | Result |
+|---|---|
+| 1 Hide in place, subreddit listing (r/politics), new and old Reddit | Pass |
+| 1 Home feed, search, profile `/submitted`, post page shows nothing hidden | Not yet checked |
+| 2 Matching, new Reddit (`content-href` edited): `www.newsweek.com`, `sub.newsweek.com` hidden; `notnewsweek.com`, `newsweek.com.evil.com`, `/r/news/comments/abc/x/`, `javascript:alert(1)`, `https://example.org/x` not hidden | Pass (all 7) |
+| 2 Matching, old Reddit (`data-url` edited): same 7 cases | Pass (all 7) |
+| 9 Theme: new Reddit stub rendered in the dark theme, old Reddit stub in the light theme (screenshots) | Partly checked: switching Reddit's theme opposite to the OS not yet done |
+| 3 Infinite scroll, 4 live update across tabs, 5 Show post / Unblock across tabs, 12 overlay, 14 DevTools marker, flash measurement | Not yet checked |
