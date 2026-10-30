@@ -1,5 +1,6 @@
 import { pickAdapter } from "./adapters.js";
 import { createBlocker } from "./blocker.js";
+import { createHitBatcher } from "./hits.js";
 import { activeDomains, recordsFromItems } from "../shared/records.js";
 
 const POLL_MS = 500;
@@ -24,11 +25,18 @@ function makeRequestUnblock(chrome) {
 }
 
 export async function init({ chrome, document, location, window }) {
+  const hits = createHitBatcher({
+    send: (msg) => chrome.runtime.sendMessage(msg),
+    timers: window,
+  });
+  window.addEventListener("pagehide", () => hits.flush());
+
   const blocker = createBlocker({
     document,
     adapter: pickAdapter(location.hostname),
     getUrl: () => location.href,
     requestUnblock: makeRequestUnblock(chrome),
+    onHit: (domain) => hits.add(domain),
   });
 
   let latestRead = 0;

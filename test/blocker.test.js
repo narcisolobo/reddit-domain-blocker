@@ -14,7 +14,7 @@ function fixture(name) {
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-function setup({ url = LISTING, domains = ["example.com"], posts = [], unblock } = {}) {
+function setup({ url = LISTING, domains = ["example.com"], posts = [], unblock, onHit } = {}) {
   const dom = new JSDOM('<!doctype html><html class="theme-light"><head></head><body><main><shreddit-feed></shreddit-feed></main></body></html>');
   const document = dom.window.document;
   const feed = document.querySelector("shreddit-feed");
@@ -45,7 +45,7 @@ function setup({ url = LISTING, domains = ["example.com"], posts = [], unblock }
   }
 
   for (const p of posts) feed.append(makeArticle(p.id, p.href, p.fixture));
-  const blocker = createBlocker({ document, adapter, getUrl: () => currentUrl, requestUnblock });
+  const blocker = createBlocker({ document, adapter, getUrl: () => currentUrl, requestUnblock, onHit });
   blocker.setActiveDomains(domains);
 
   const post = (id) => document.getElementById(id);
@@ -511,4 +511,66 @@ test("old Reddit: post and spacer are both marked; stub sits before the post", (
   assert.ok(!isHidden(spacer));
   assert.equal(document.querySelectorAll("[data-rdb-stub]").length, 0);
   blocker.stop();
+});
+
+test("onHit fires once per matching post with the matching entry", () => {
+  const hits = [];
+  const t = setup({
+    onHit: (d) => hits.push(d),
+    posts: [
+      { id: "t3_a", href: "https://example.com/a" },
+      { id: "t3_b", href: "https://news.example.com/b" },
+      { id: "t3_c", href: "https://fine.net/c" },
+    ],
+  });
+  t.blocker.start();
+  assert.deepEqual(hits, ["example.com", "example.com"]);
+  t.blocker.stop();
+});
+
+test("re-scans, Show/Hide post, and unblock-then-reblock do not count again", () => {
+  const hits = [];
+  const t = setup({ onHit: (d) => hits.push(d), posts: [{ id: "t3_a", href: "https://example.com/a" }] });
+  t.blocker.start();
+  t.blocker.setActiveDomains(["example.com", "other.org"]);
+  t.buttonIn(t.stubOf(t.post("t3_a")), "Show post").click();
+  t.buttonIn(t.stubOf(t.post("t3_a")), "Hide post").click();
+  t.blocker.setActiveDomains([]);
+  t.blocker.setActiveDomains(["example.com"]);
+  assert.deepEqual(hits, ["example.com"]);
+  t.blocker.stop();
+});
+
+test("posts without an id are deduped by node", () => {
+  const hits = [];
+  const t = setup({ onHit: (d) => hits.push(d), posts: [{ href: "https://example.com/a" }] });
+  t.blocker.start();
+  t.blocker.setActiveDomains([]);
+  t.blocker.setActiveDomains(["example.com"]);
+  assert.deepEqual(hits, ["example.com"]);
+  t.blocker.stop();
+});
+
+test("a recycled node with a new post id counts the new post; back to the old id does not", async () => {
+  const hits = [];
+  const t = setup({ onHit: (d) => hits.push(d), posts: [{ id: "t3_a", href: "https://example.com/a" }] });
+  t.blocker.start();
+  const node = t.post("t3_a");
+  node.setAttribute("id", "t3_b");
+  await flush();
+  assert.equal(hits.length, 2);
+  node.setAttribute("id", "t3_a");
+  await flush();
+  assert.equal(hits.length, 2);
+  t.blocker.stop();
+});
+
+test("posts on a post page or search page are not counted", () => {
+  for (const url of [POST_PAGE, "https://www.reddit.com/search/?q=x"]) {
+    const hits = [];
+    const t = setup({ url, onHit: (d) => hits.push(d), posts: [{ id: "t3_a", href: "https://example.com/a" }] });
+    t.blocker.start();
+    assert.deepEqual(hits, [], url);
+    t.blocker.stop();
+  }
 });

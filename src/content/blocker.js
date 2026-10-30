@@ -9,13 +9,15 @@ const FOCUSABLE = "a[href], button, input, select, textarea, [tabindex]:not([tab
 const UNBLOCK_ERROR = "Couldn't unblock this domain. Reload the page and try again.";
 const GENERIC_ERROR = "Something went wrong. Reload the page and try again.";
 
-export function createBlocker({ document, adapter, getUrl, requestUnblock }) {
+export function createBlocker({ document, adapter, getUrl, requestUnblock, onHit = () => {} }) {
   let active = [];
   // post element -> { stub, id, href, domain, state, targets }
   let records = new WeakMap();
   const stubs = new WeakMap(); // stub element -> Stub
   const revealedIds = new Map(); // post id -> true, for this page load
   const revealedNodes = new WeakSet(); // posts that carry no id
+  const countedIds = new Set(); // post ids already reported this page load
+  const countedNodes = new WeakSet(); // posts that carry no id
   let started = false;
   let wasExcludedPage = false;
   let theme = "light";
@@ -44,6 +46,21 @@ export function createBlocker({ document, adapter, getUrl, requestUnblock }) {
       revealedNodes.add(post);
     } else {
       revealedNodes.delete(post);
+    }
+  }
+
+  function countHit(post, id, domain) {
+    if (id) {
+      if (countedIds.has(id)) return;
+      countedIds.add(id);
+    } else {
+      if (countedNodes.has(post)) return;
+      countedNodes.add(post);
+    }
+    try {
+      onHit(domain);
+    } catch {
+      // Counting must never break hiding.
     }
   }
 
@@ -137,6 +154,7 @@ export function createBlocker({ document, adapter, getUrl, requestUnblock }) {
       if (rec) restore(post, rec, rec.id === id);
       return;
     }
+    countHit(post, id, domain);
     const stubHadFocus = Boolean(rec) && document.activeElement === rec.stub.element;
     const state = isRevealed(post, id) ? "revealed" : "hidden";
     if (!rec) {
