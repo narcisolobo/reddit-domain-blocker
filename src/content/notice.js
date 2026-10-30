@@ -50,8 +50,20 @@ const STYLE = `
   min-width: 0;
   overflow-wrap: anywhere;
 }
-.messages:empty { display: none; }
-.messages > div:empty { display: none; }
+/* Hidden state keeps the live regions rendered (no display:none or
+   visibility:hidden) so screen readers announce text written later. */
+.box.off {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  border: 0;
+  box-shadow: none;
+  white-space: nowrap;
+}
 .error { color: var(--rdb-error); }
 button {
   display: inline-flex;
@@ -78,23 +90,24 @@ button svg { flex: none; }
 }
 `;
 
-export function createNotice(document) {
+export function createNotice(document, { defer = (fn) => setTimeout(fn, 0) } = {}) {
   let host = null;
   let box = null;
   let statusRegion = null;
   let alertRegion = null;
+  let button = null;
+  let token = 0;
 
   function build() {
     host = document.createElement("div");
     host.setAttribute("data-rdb-notice", "");
-    host.style.display = "none";
     const root = host.attachShadow({ mode: "open" });
 
     const style = document.createElement("style");
     style.textContent = STYLE;
 
     box = document.createElement("div");
-    box.className = "box";
+    box.className = "box off";
 
     const messages = document.createElement("div");
     messages.className = "messages";
@@ -105,7 +118,8 @@ export function createNotice(document) {
     alertRegion.setAttribute("role", "alert");
     messages.append(statusRegion, alertRegion);
 
-    const button = document.createElement("button");
+    button = document.createElement("button");
+    button.hidden = true;
     button.type = "button";
     button.title = "Dismiss message";
     button.setAttribute("aria-label", "Dismiss message");
@@ -124,7 +138,12 @@ export function createNotice(document) {
   }
 
   function dismiss() {
-    if (host) host.style.display = "none";
+    token += 1;
+    if (!host) return;
+    box.classList.add("off");
+    button.hidden = true;
+    statusRegion.textContent = "";
+    alertRegion.textContent = "";
   }
 
   function show({ kind, text }) {
@@ -133,8 +152,14 @@ export function createNotice(document) {
     const target = kind === "error" ? alertRegion : statusRegion;
     const other = kind === "error" ? statusRegion : alertRegion;
     other.textContent = "";
-    target.textContent = String(text ?? "");
-    host.style.display = "block";
+    // Make the box visible first; write the text on a later tick so the
+    // already-rendered live region announces the change.
+    box.classList.remove("off");
+    button.hidden = false;
+    const mine = ++token;
+    defer(() => {
+      if (mine === token) target.textContent = String(text ?? "");
+    });
   }
 
   return { show, dismiss };

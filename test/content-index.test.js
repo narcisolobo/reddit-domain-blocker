@@ -358,8 +358,10 @@ test("a notice message shows the notice; malformed notice messages are ignored",
   }
   assert.equal(host(), null);
   await t.fake.runtime.dispatchMessage({ type: "notice", kind: "error", text: "Nope" });
+  await flush();
   assert.equal(host().shadowRoot.querySelector('[role="alert"]').textContent, "Nope");
   await t.fake.runtime.dispatchMessage({ type: "notice", kind: "status", text: "y".repeat(400) });
+  await flush();
   assert.equal(host().shadowRoot.querySelector('[role="status"]').textContent.length, 300);
   await t.fake.storage.sync.set({ "d:example.com": rec() });
   await flush();
