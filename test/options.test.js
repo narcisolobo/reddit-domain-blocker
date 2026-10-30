@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { JSDOM } from "jsdom";
 import { createFakeChrome } from "./helpers/fake-chrome.js";
-import { messageFor, renderList } from "../src/options/view.js";
+import { messageFor, renderList, renderArchived } from "../src/options/view.js";
 import { init } from "../src/options/index.js";
 import { handleMessage } from "../src/background/blocklist.js";
 
@@ -90,23 +90,24 @@ test("messageFor is total: unknown reason, missing reason, non-objects", () => {
 test("renderList shows active domains only, sorted, with caption and th scope=col", () => {
   const { document } = page();
   const root = document.getElementById("list");
-  renderList(root, [rec("zeta.com"), rec("old.com", "archived"), rec("alpha.com")], { onRemove() {} });
+  renderList(root, [rec("zeta.com"), rec("old.com", "archived"), rec("alpha.com")], new Map(), { onRemove() {} });
   const cells = [...root.querySelectorAll("td.domain")].map((td) => td.textContent);
   assert.deepEqual(cells, ["alpha.com", "zeta.com"]);
   assert.equal(root.querySelector("caption").textContent, "Blocked domains");
   const ths = [...root.querySelectorAll("th")];
-  assert.equal(ths.length, 2);
+  assert.equal(ths.length, 3);
   assert.ok(ths.every((th) => th.getAttribute("scope") === "col"));
   assert.equal(ths[0].textContent, "Domain");
-  assert.equal(ths[1].textContent, "Actions");
-  assert.ok(ths[1].querySelector(".visually-hidden"));
+  assert.equal(ths[1].textContent, "Posts hidden");
+  assert.equal(ths[2].textContent, "Actions");
+  assert.ok(ths[2].querySelector(".visually-hidden"));
 });
 
 test("Remove button has text, aria-label, title, hidden svg, and calls onRemove", () => {
   const { document } = page();
   const root = document.getElementById("list");
   const removed = [];
-  renderList(root, [rec("example.com")], { onRemove: (d) => removed.push(d) });
+  renderList(root, [rec("example.com")], new Map(), { onRemove: (d) => removed.push(d) });
   const btn = root.querySelector("button");
   assert.equal(btn.textContent.trim(), "Remove");
   assert.equal(btn.getAttribute("aria-label"), "Remove example.com");
@@ -119,7 +120,7 @@ test("Remove button has text, aria-label, title, hidden svg, and calls onRemove"
 test("empty list shows the empty state and no table", () => {
   const { document } = page();
   const root = document.getElementById("list");
-  renderList(root, [rec("old.com", "archived")], { onRemove() {} });
+  renderList(root, [rec("old.com", "archived")], new Map(), { onRemove() {} });
   assert.equal(root.querySelector("table"), null);
   assert.match(root.textContent, /No blocked domains yet\./);
 });
@@ -258,13 +259,6 @@ test("an external storage change re-renders the list without a reload", async ()
   assert.deepEqual([...document.querySelectorAll("td.domain")].map((t) => t.textContent), ["elsewhere.com"]);
 });
 
-test("changes in other storage areas do not trigger a render", async () => {
-  const { chrome, document } = await setup();
-  await chrome.storage.local.set({ "d:local.com": stored() });
-  await settle();
-  assert.equal(document.querySelector("table"), null);
-});
-
 test("a malformed record in storage is ignored", async () => {
   const { document } = await setup({
     "d:good.com": stored(),
@@ -346,4 +340,145 @@ test("a slower earlier storage read does not overwrite a newer one", async () =>
   await settle();
   const domains = [...document.querySelectorAll("td.domain")].map((t) => t.textContent);
   assert.deepEqual(domains, ["fast.com", "old.com", "slow.com"]);
+});
+
+// ---- M2 Task 4: counts, Archived section, Restore ----
+
+const stat = (n) => ({ blockedCount: n, lastBlockedAt: 5 });
+const countOf = (document, d) => document.querySelector(`[data-count-for="${d}"]`).textContent;
+
+test("active table shows Posts hidden from local stats, 0 when missing", async () => {
+  const { chrome, document } = await setup({ "d:a.com": stored(), "d:b.com": stored() });
+  await chrome.storage.local.set({ "stats:a.com": stat(12) });
+  await settle();
+  assert.equal(countOf(document, "a.com"), "12");
+  assert.equal(countOf(document, "b.com"), "0");
+  assert.equal(document.querySelector('td.count[data-count-for="a.com"]').className, "count");
+});
+
+test("archived table: caption, th scope=col, time datetime, counts, Restore button names", async () => {
+  const { document } = await setup({ "d:old.com": stored("archived") });
+  const root = document.getElementById("archived-list");
+  assert.equal(root.querySelector("caption").textContent, "Archived domains");
+  const ths = [...root.querySelectorAll("th")];
+  assert.deepEqual(ths.map((t) => t.textContent), ["Domain", "Archived", "Posts hidden", "Actions"]);
+  assert.ok(ths.every((t) => t.getAttribute("scope") === "col"));
+  const time = root.querySelector("time");
+  assert.equal(time.getAttribute("datetime"), new Date(2).toISOString());
+  assert.equal(time.textContent, new Date(2).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }));
+  assert.equal(countOf(document, "old.com"), "0");
+  const btn = root.querySelector('button[data-action="restore"]');
+  assert.equal(btn.dataset.domain, "old.com");
+  assert.equal(btn.textContent.trim(), "Restore");
+  assert.equal(btn.getAttribute("aria-label"), "Restore old.com");
+  assert.equal(btn.getAttribute("title"), "Block old.com again");
+  assert.equal(btn.querySelector("svg").getAttribute("aria-hidden"), "true");
+  assert.ok(root.querySelector('button[data-action="delete"]'));
+});
+
+test("renderArchived sorts by domain and wires handlers", () => {
+  const { document } = page();
+  const root = document.getElementById("archived-list");
+  const calls = [];
+  renderArchived(root, [rec("z.com", "archived"), rec("a.com", "archived"), rec("live.com")], new Map(), {
+    onRestore: (d) => calls.push(["restore", d]),
+    onDelete: (d) => calls.push(["delete", d]),
+  }, null);
+  assert.deepEqual([...root.querySelectorAll("td.domain")].map((t) => t.textContent), ["a.com", "z.com"]);
+  root.querySelector('button[data-action="restore"]').click();
+  root.querySelector('button[data-action="delete"]').click();
+  assert.deepEqual(calls, [["restore", "a.com"], ["delete", "a.com"]]);
+});
+
+test("no archived records shows 'No archived domains.' and keeps the Archived heading", async () => {
+  const { document } = await setup({ "d:a.com": stored() });
+  const root = document.getElementById("archived-list");
+  assert.equal(root.querySelector("p.empty").textContent, "No archived domains.");
+  assert.equal(root.querySelector("table"), null);
+  assert.ok(document.getElementById("archived-heading"));
+});
+
+test("page shell has h1 then two h2s, Archived heading is focusable with tabindex -1", () => {
+  const { document } = page();
+  const heads = [...document.querySelectorAll("h1, h2")].map((h) => [h.tagName, h.textContent]);
+  assert.deepEqual(heads, [["H1", "Reddit Domain Blocker"], ["H2", "Blocked domains"], ["H2", "Archived"]]);
+  const h = document.getElementById("archived-heading");
+  assert.equal(h.getAttribute("tabindex"), "-1");
+  assert.equal(document.querySelector('section[aria-labelledby="archived-heading"]').contains(h), true);
+  assert.equal(document.querySelector('section[aria-labelledby="active-heading"]').contains(document.getElementById("list")), true);
+});
+
+test("Restore sends domain/restore, announces Restored, row moves to the active table", async () => {
+  const { chrome, document } = await setup({ "d:old.com": stored("archived") });
+  const sent = [];
+  const original = chrome.runtime.sendMessage.bind(chrome.runtime);
+  chrome.runtime.sendMessage = (m) => (sent.push(m), original(m));
+  document.querySelector('button[aria-label="Restore old.com"]').click();
+  await settle();
+  assert.deepEqual(sent, [{ type: "domain/restore", domain: "old.com" }]);
+  assert.equal(document.querySelector('[role="status"]').textContent, "Restored old.com");
+  assert.deepEqual([...document.querySelectorAll("#list td.domain")].map((t) => t.textContent), ["old.com"]);
+  assert.equal(document.querySelector("#archived-list table"), null);
+});
+
+test("after Restore focus goes to the next archived Restore, else previous, else the Archived heading", async () => {
+  const { document } = await setup({
+    "d:a.com": stored("archived"),
+    "d:b.com": stored("archived"),
+    "d:c.com": stored("archived"),
+  });
+  const restore = (d) => document.querySelector(`button[aria-label="Restore ${d}"]`);
+  restore("a.com").focus();
+  restore("a.com").click();
+  await settle();
+  assert.equal(document.activeElement.getAttribute("aria-label"), "Restore b.com");
+  restore("c.com").focus();
+  restore("c.com").click();
+  await settle();
+  assert.equal(document.activeElement.getAttribute("aria-label"), "Restore b.com");
+  restore("b.com").focus();
+  restore("b.com").click();
+  await settle();
+  assert.equal(document.activeElement, document.getElementById("archived-heading"));
+});
+
+test("a stats change updates count cells in place: same table nodes, focus unchanged", async () => {
+  const { chrome, document } = await setup({ "d:a.com": stored(), "d:old.com": stored("archived") });
+  const active = document.querySelector("#list table");
+  const archived = document.querySelector("#archived-list table");
+  const btn = document.querySelector('button[aria-label="Remove a.com"]');
+  btn.focus();
+  await chrome.storage.local.set({ "stats:a.com": stat(3), "stats:old.com": stat(9) });
+  await settle();
+  assert.equal(document.querySelector("#list table"), active);
+  assert.equal(document.querySelector("#archived-list table"), archived);
+  assert.equal(document.activeElement, btn);
+  assert.equal(countOf(document, "a.com"), "3");
+  assert.equal(countOf(document, "old.com"), "9");
+});
+
+test("a local change with no stats: keys does nothing", async () => {
+  const { chrome, document } = await setup({ "d:a.com": stored() });
+  const table = document.querySelector("#list table");
+  const cell = document.querySelector("td.count");
+  let reads = 0;
+  const realGet = chrome.storage.local.get.bind(chrome.storage.local);
+  chrome.storage.local.get = (k) => (reads++, realGet(k));
+  await chrome.storage.local.set({ "d:local.com": stored(), other: 1 });
+  await settle();
+  assert.equal(reads, 0);
+  assert.equal(document.querySelector("#list table"), table);
+  assert.equal(document.querySelector("td.count"), cell);
+  assert.equal(document.querySelectorAll("td.domain").length, 1);
+});
+
+test("a malformed stats value shows 0 and does not throw", async () => {
+  const { chrome, document } = await setup({ "d:a.com": stored(), "d:b.com": stored(), "d:c.com": stored() });
+  await chrome.storage.local.set({
+    "stats:a.com": { blockedCount: -4, lastBlockedAt: null },
+    "stats:b.com": "lots",
+    "stats:c.com": { blockedCount: 1.5, lastBlockedAt: 1 },
+  });
+  await settle();
+  for (const d of ["a.com", "b.com", "c.com"]) assert.equal(countOf(document, d), "0");
 });

@@ -95,7 +95,14 @@ input[aria-invalid="true"] { border: 2px solid var(--error); }
 
 .empty { color: var(--muted); margin: 2rem 0 0; }
 
-table.domains { width: 100%; margin-top: 2rem; border-collapse: collapse; }
+h2 { font-size: 1.25rem; margin: 2rem 0 0; }
+section + section { margin-top: 3rem; }
+
+.btn-restore { color: var(--grey-text); border-color: var(--grey-border); }
+td.actions .btn + .btn { margin-left: 0.5rem; }
+td.count, th:nth-last-child(2) { text-align: right; font-variant-numeric: tabular-nums; padding-left: 1rem; padding-right: 1rem; }
+
+table.domains { width: 100%; margin-top: 0.5rem; border-collapse: collapse; }
 
 caption {
   text-align: left;

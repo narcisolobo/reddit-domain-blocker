@@ -49,59 +49,151 @@ export function messageFor(result) {
 export const EMPTY_TEXT =
   "No blocked domains yet. Paste one above, or right-click a link on Reddit once that menu is added.";
 
-export function renderList(root, records, handlers) {
+function el(doc, tag, className, text) {
+  const node = doc.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+function th(doc, text, { hidden = false } = {}) {
+  const node = doc.createElement("th");
+  node.scope = "col";
+  if (hidden) node.append(el(doc, "span", "visually-hidden", text));
+  else node.textContent = text;
+  return node;
+}
+
+function countCell(doc, domain, stats) {
+  const td = el(doc, "td", "count", String(stats.get(domain)?.blockedCount ?? 0));
+  td.dataset.countFor = domain;
+  return td;
+}
+
+function rowButton(doc, { action, domain, className, iconName, label, ariaLabel, title, onClick }) {
+  const btn = doc.createElement("button");
+  btn.type = "button";
+  btn.className = className;
+  btn.dataset.domain = domain;
+  btn.dataset.action = action;
+  btn.setAttribute("aria-label", ariaLabel);
+  btn.title = title;
+  btn.innerHTML = `${icon(iconName)}<span>${label}</span>`;
+  btn.addEventListener("click", () => onClick(domain));
+  return btn;
+}
+
+function buildTable(doc, captionText, headers) {
+  const table = el(doc, "table", "domains");
+  table.append(el(doc, "caption", "", captionText));
+  const thead = doc.createElement("thead");
+  const row = doc.createElement("tr");
+  row.append(...headers);
+  thead.append(row);
+  const tbody = doc.createElement("tbody");
+  table.append(thead, tbody);
+  return { table, tbody };
+}
+
+const byDomain = (a, b) => a.domain.localeCompare(b.domain);
+
+export function renderList(root, records, stats, handlers) {
   const doc = root.ownerDocument;
-  const active = records
-    .filter((r) => r.status === "active")
-    .sort((a, b) => a.domain.localeCompare(b.domain));
+  const active = records.filter((r) => r.status === "active").sort(byDomain);
 
   root.textContent = "";
   if (active.length === 0) {
-    const p = doc.createElement("p");
-    p.className = "empty";
-    p.textContent = EMPTY_TEXT;
-    root.append(p);
+    root.append(el(doc, "p", "empty", EMPTY_TEXT));
     return;
   }
 
-  const table = doc.createElement("table");
-  table.className = "domains";
-  const caption = doc.createElement("caption");
-  caption.textContent = "Blocked domains";
-  const thead = doc.createElement("thead");
-  const headRow = doc.createElement("tr");
-  const thDomain = doc.createElement("th");
-  thDomain.scope = "col";
-  thDomain.textContent = "Domain";
-  const thActions = doc.createElement("th");
-  thActions.scope = "col";
-  const hidden = doc.createElement("span");
-  hidden.className = "visually-hidden";
-  hidden.textContent = "Actions";
-  thActions.append(hidden);
-  headRow.append(thDomain, thActions);
-  thead.append(headRow);
-
-  const tbody = doc.createElement("tbody");
+  const { table, tbody } = buildTable(doc, "Blocked domains", [
+    th(doc, "Domain"),
+    th(doc, "Posts hidden"),
+    th(doc, "Actions", { hidden: true }),
+  ]);
   for (const rec of active) {
     const tr = doc.createElement("tr");
-    const tdDomain = doc.createElement("td");
-    tdDomain.className = "domain";
-    tdDomain.textContent = rec.domain;
-    const tdAction = doc.createElement("td");
-    tdAction.className = "actions";
-    const btn = doc.createElement("button");
-    btn.type = "button";
-    btn.className = "btn btn-remove";
-    btn.dataset.domain = rec.domain;
-    btn.setAttribute("aria-label", `Remove ${rec.domain}`);
-    btn.title = `Archive ${rec.domain}`;
-    btn.innerHTML = `${icon("trash")}<span>Remove</span>`;
-    btn.addEventListener("click", () => handlers.onRemove(rec.domain));
-    tdAction.append(btn);
-    tr.append(tdDomain, tdAction);
+    const tdAction = el(doc, "td", "actions");
+    tdAction.append(
+      rowButton(doc, {
+        action: "remove",
+        domain: rec.domain,
+        className: "btn btn-remove",
+        iconName: "trash",
+        label: "Remove",
+        ariaLabel: `Remove ${rec.domain}`,
+        title: `Archive ${rec.domain}`,
+        onClick: handlers.onRemove,
+      }),
+    );
+    tr.append(el(doc, "td", "domain", rec.domain), countCell(doc, rec.domain, stats), tdAction);
     tbody.append(tr);
   }
-  table.append(caption, thead, tbody);
   root.append(table);
+}
+
+function formatDate(doc, ms) {
+  if (!Number.isFinite(ms)) return el(doc, "td", "archived-at");
+  const date = new Date(ms);
+  const time = doc.createElement("time");
+  time.dateTime = date.toISOString();
+  time.textContent = date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  const td = el(doc, "td", "archived-at");
+  td.append(time);
+  return td;
+}
+
+// onConfirm / onCancel and `confirming` belong to the two-step Delete (next task).
+export function renderArchived(root, records, stats, handlers, _confirming = null) {
+  const doc = root.ownerDocument;
+  const archived = records.filter((r) => r.status === "archived").sort(byDomain);
+
+  root.textContent = "";
+  if (archived.length === 0) {
+    root.append(el(doc, "p", "empty", "No archived domains."));
+    return;
+  }
+
+  const { table, tbody } = buildTable(doc, "Archived domains", [
+    th(doc, "Domain"),
+    th(doc, "Archived"),
+    th(doc, "Posts hidden"),
+    th(doc, "Actions", { hidden: true }),
+  ]);
+  for (const rec of archived) {
+    const tr = doc.createElement("tr");
+    const tdAction = el(doc, "td", "actions");
+    tdAction.append(
+      rowButton(doc, {
+        action: "restore",
+        domain: rec.domain,
+        className: "btn btn-restore",
+        iconName: "arrow-back-up",
+        label: "Restore",
+        ariaLabel: `Restore ${rec.domain}`,
+        title: `Block ${rec.domain} again`,
+        onClick: handlers.onRestore,
+      }),
+      rowButton(doc, {
+        action: "delete",
+        domain: rec.domain,
+        className: "btn btn-remove",
+        iconName: "trash",
+        label: "Delete permanently",
+        ariaLabel: `Delete permanently: ${rec.domain}`,
+        title: `Delete ${rec.domain} and its history`,
+        onClick: handlers.onDelete,
+      }),
+    );
+    tr.append(el(doc, "td", "domain", rec.domain), formatDate(doc, rec.archivedAt), countCell(doc, rec.domain, stats), tdAction);
+    tbody.append(tr);
+  }
+  root.append(table);
+}
+
+export function updateCounts(doc, stats) {
+  for (const cell of doc.querySelectorAll("[data-count-for]")) {
+    cell.textContent = String(stats.get(cell.dataset.countFor)?.blockedCount ?? 0);
+  }
 }

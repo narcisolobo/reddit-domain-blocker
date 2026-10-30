@@ -18,7 +18,14 @@
     </form>
     <div id="status" role="status" class="message message-status"></div>
     <div id="error" role="alert" class="message message-error"></div>
-    <section id="list" aria-label="Blocked domains list"></section>
+    <section aria-labelledby="active-heading">
+      <h2 id="active-heading">Blocked domains</h2>
+      <div id="list"></div>
+    </section>
+    <section aria-labelledby="archived-heading">
+      <h2 id="archived-heading" tabindex="-1">Archived</h2>
+      <div id="archived-list"></div>
+    </section>
   </main>
   <script src="options.js"></script>
 </body>
