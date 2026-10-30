@@ -1,4 +1,5 @@
-import { handleMessage } from "./blocklist.js";
+import { addDomain, handleMessage } from "./blocklist.js";
+import { MENU_ID, registerMenu, menuNoticeFor } from "./menu.js";
 
 export function init(chromeApi) {
   // Serialize message handling: blocklist operations read then write, so
@@ -14,6 +15,21 @@ export function init(chromeApi) {
       )
       .catch(() => {});
     return true;
+  });
+
+  chromeApi.runtime.onInstalled.addListener(() => registerMenu(chromeApi.contextMenus));
+
+  chromeApi.contextMenus.onClicked.addListener((info, tab) => {
+    if (info.menuItemId !== MENU_ID || !(tab?.id >= 0)) return Promise.resolve();
+    const run = queue.then(async () => {
+      const result = await addDomain(chromeApi.storage.sync, info.linkUrl, "context-menu");
+      const notice = menuNoticeFor(result);
+      if (notice) {
+        await chromeApi.tabs.sendMessage(tab.id, { type: "notice", ...notice }).catch(() => {});
+      }
+    });
+    queue = run.catch(() => {});
+    return run.catch(() => {});
   });
 
   chromeApi.action.onClicked.addListener(() => {

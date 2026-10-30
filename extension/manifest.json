@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Hide Reddit posts that link to domains you choose.",
   "minimum_chrome_version": "120",
-  "permissions": ["storage"],
+  "permissions": ["storage", "contextMenus"],
   "background": { "service_worker": "background.js" },
   "action": {},
   "options_ui": { "page": "options.html", "open_in_tab": true },
