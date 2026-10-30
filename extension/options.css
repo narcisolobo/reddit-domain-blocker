@@ -158,3 +158,18 @@ td.actions { text-align: right; }
 #import-review legend { padding: 0; font-weight: 600; }
 #import-review label { display: block; margin-top: 0.5rem; }
 .review-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+
+/* Small screens: icon-only buttons keep their aria-label and title. The
+   "Really delete?" text is not a button label and stays visible. */
+@media (max-width: 412px) {
+  .btn > span { display: none; }
+  .btn, .btn-small { min-width: 44px; min-height: 44px; justify-content: center; padding: 0.5rem; }
+  .btn svg { width: 20px; height: 20px; }
+}
+
+/* The green and red fills are dropped, so every button gets a system-color border. */
+@media (forced-colors: active) {
+  .btn { border: 1px solid ButtonText; }
+  :focus-visible { outline-color: Highlight; }
+  input[type="text"] { border-color: CanvasText; }
+}

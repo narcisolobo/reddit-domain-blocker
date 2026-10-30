@@ -1147,3 +1147,60 @@ test("a slower earlier file pick does not replace a newer review", async () => {
   await settle();
   assert.equal(review(document).querySelector("p").textContent, "2 new, 0 merged, 0 skipped");
 });
+
+// ---- Button names and CSS ----
+
+const CSS = readFileSync(new URL("../extension/options.css", import.meta.url), "utf8");
+function mediaBody(css, query) {
+  const start = css.indexOf(`@media (${query})`);
+  assert.notEqual(start, -1, `missing @media (${query})`);
+  const open = css.indexOf("{", start);
+  let depth = 0;
+  for (let i = open; i < css.length; i++) {
+    if (css[i] === "{") depth++;
+    if (css[i] === "}" && --depth === 0) return css.slice(open + 1, i);
+  }
+  assert.fail("unterminated media block");
+}
+function ruleFor(body, selectorPattern) {
+  const m = [...body.matchAll(/([^{}]+)\{([^}]*)\}/g)].find((r) => selectorPattern.test(r[1]));
+  assert.ok(m, `no rule matching ${selectorPattern}`);
+  return { selector: m[1], decls: m[2] };
+}
+
+test("every button has an icon, a visible label, a title, and an aria-label containing the label", async () => {
+  const { document } = await setup({ "d:a.com": stored(), "d:old.com": stored("archived") });
+  q(document, "Delete permanently: old.com").click();
+  await settle();
+  pick(document, exportJson([entry("b.com")]));
+  await settle();
+  const buttons = [...document.querySelectorAll("button")];
+  assert.ok(buttons.length >= 7);
+  for (const b of buttons) {
+    const label = b.querySelector("span")?.textContent ?? "";
+    assert.ok(b.querySelector("svg[aria-hidden=true]"), `${label}: icon`);
+    assert.ok(label.length > 0, "visible label");
+    assert.ok(b.title.length > 0, `${label}: title`);
+    assert.ok(b.getAttribute("aria-label")?.includes(label), `${label}: aria-label contains label`);
+  }
+});
+
+test("options.css hides button text and enlarges targets at 412px, including btn-small", () => {
+  const body = mediaBody(CSS, "max-width: 412px");
+  assert.match(ruleFor(body, /\.btn\s*>\s*span/).decls, /display:\s*none/);
+  const target = ruleFor(body, /\.btn-small/);
+  assert.match(target.selector, /(^|,)\s*\.btn\s*(,|$)/);
+  assert.match(target.decls, /min-width:\s*44px/);
+  assert.match(target.decls, /min-height:\s*44px/);
+  assert.match(target.decls, /justify-content:\s*center/);
+  assert.match(target.decls, /padding:\s*0\.5rem/);
+  assert.match(ruleFor(body, /\.btn svg/).decls, /width:\s*20px;\s*height:\s*20px/);
+  assert.doesNotMatch(body, /confirm-text/);
+});
+
+test("options.css has a forced-colors block for buttons, focus, and the input", () => {
+  const body = mediaBody(CSS, "forced-colors: active");
+  assert.match(ruleFor(body, /\.btn\b/).decls, /border:\s*1px solid ButtonText/);
+  assert.match(ruleFor(body, /:focus-visible/).decls, /outline-color:\s*Highlight/);
+  assert.match(ruleFor(body, /input\[type="text"\]/).decls, /border-color:\s*CanvasText/);
+});

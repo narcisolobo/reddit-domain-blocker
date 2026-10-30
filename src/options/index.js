@@ -17,6 +17,8 @@ export async function init(env) {
   const archivedEl = document.getElementById("archived-list");
   const archivedHeading = document.getElementById("archived-heading");
 
+  addButton.setAttribute("aria-label", "Add");
+  addButton.title = "Add this domain to your list";
   addButton.innerHTML = `${icon("plus")}<span>Add</span>`;
   errorEl.id = "error";
   const exportButton = document.getElementById("export-button");
