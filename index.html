@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reddit Domain Blocker</title>
+<meta name="description" content="A Chrome extension that hides Reddit posts by the site they link to, and leaves a note where each one was.">
+<link rel="icon" type="image/png" href="favicon.png">
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1c1f23;
+    --muted: #4b5563;
+    --rule: #d6dade;
+    --tile: #24303a;
+    --link: #0b57b0;
+    --stub-bg: #f6f7f8;
+    --stub-border: #6b7280;
+    --focus: #005fcc;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14181c;
+      --fg: #e8eaed;
+      --muted: #aab1ba;
+      --rule: #333a42;
+      --link: #8ab4f8;
+      --stub-bg: #1a1a1b;
+      --stub-border: #8b949e;
+      --focus: #4d90fe;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 1.0625rem/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  main, footer { max-width: 40rem; margin: 0 auto; padding: 0 1rem; }
+  header { padding: 3.5rem 0 1rem; }
+  header img { display: block; width: 4.5rem; height: 4.5rem; border-radius: 1rem; }
+  h1 { font-size: 2.1rem; line-height: 1.2; margin: 1.25rem 0 .5rem; letter-spacing: -.01em; }
+  .lede { font-size: 1.2rem; color: var(--muted); margin: 0 0 1.5rem; }
+  .install { margin: 0 0 1rem; color: var(--muted); }
+  h2 { font-size: 1.3rem; line-height: 1.3; margin: 2.75rem 0 .5rem; }
+  p { margin: 0 0 1rem; }
+  a { color: var(--link); text-underline-offset: .15em; }
+  a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
+  code { font: .92em ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+
+  figure { margin: 1.5rem 0; }
+  figcaption { font-size: .9rem; color: var(--muted); margin-top: .5rem; }
+  .stub {
+    display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem;
+    padding: .6rem .75rem;
+    background: var(--stub-bg);
+    border: 1px dashed var(--stub-border);
+    border-radius: .5rem;
+    font-size: .95rem;
+  }
+  .stub .label { display: flex; align-items: center; gap: .4rem; flex: 1 1 12rem; min-width: 0; overflow-wrap: anywhere; }
+  .stub .buttons { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .stub .btn {
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: .3rem .65rem;
+    border: 1px solid var(--stub-border);
+    border-radius: .375rem;
+    background: var(--bg);
+    font-size: .9rem;
+  }
+  svg { flex: none; }
+
+  .privacy { border-top: 1px solid var(--rule); margin-top: 3rem; padding-top: .25rem; }
+  .privacy h2 { margin-top: 1.75rem; }
+  .updated { font-size: .9rem; color: var(--muted); }
+  footer { border-top: 1px solid var(--rule); margin-top: 3rem; padding-top: 1.25rem; padding-bottom: 3rem; font-size: .9rem; color: var(--muted); }
+  footer p { margin: 0 0 .35rem; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="icon.png" alt="" width="72" height="72">
+    <h1>Reddit Domain Blocker</h1>
+    <p class="lede">A Chrome extension that hides Reddit posts by the site they link to, and leaves a note where each one was.</p>
+    <p class="install">Coming soon to the Chrome Web Store. Until then you can <a href="https://github.com/narcisolobo/reddit-domain-blocker">build it from the source on GitHub</a>.</p>
+  </header>
+
+  <h2>Why I built it</h2>
+  <p>My Reddit feed kept filling up with the same few outlets. The one that finally got to me was The Daily Beast: headlines like "Fox viewers slam so-and-so" that turn out to be a few comments on a tweet.</p>
+  <p>I didn't want to leave Reddit. Muting whole subreddits threw out too much good stuff along with the bad. What I wanted was to name a site once and never see its posts again. Reddit doesn't offer that, so I wrote an extension that does.</p>
+
+  <h2>It leaves a note</h2>
+  <p>Hidden posts don't just vanish. If they did, I'd never know whether the extension was working or Reddit was having a quiet day. So each one leaves a single line in the feed:</p>
+  <figure>
+    <div class="stub" aria-hidden="true">
+      <span class="label"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M5.7 5.7l12.6 12.6"/></svg>Hidden: thedailybeast.com</span>
+      <span class="buttons">
+        <span class="btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/></svg>Show post</span>
+        <span class="btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14l-4 -4l4 -4"/><path d="M5 10h11a4 4 0 1 1 0 8h-1"/></svg>Unblock domain</span>
+      </span>
+    </div>
+    <figcaption>What a hidden post looks like in the feed: a line saying "Hidden: thedailybeast.com", with buttons to show the post or unblock the domain. The note follows Reddit's light or dark theme.</figcaption>
+  </figure>
+  <p>Show post is there for when I'm curious. Unblock domain is there for when I change my mind.</p>
+
+  <h2>Matching has to be exact</h2>
+  <p>Blocking <code>example.com</code> also blocks <code>news.example.com</code>, because outlets love their subdomains. It doesn't block <code>notexample.com</code>, and it doesn't fall for <code>example.com.evil.com</code>. I checked those cases against live posts on new and old Reddit by editing a post's link in DevTools and watching what disappeared. Hiding a post I never asked to hide would be worse than missing one.</p>
+  <p>Reddit's own domains can't be blocked at all. Text posts, images and galleries all point back at Reddit, and blocking it would hide half the site.</p>
+
+  <h2>The flash that never showed up</h2>
+  <p>Reddit sends the first batch of posts in its initial HTML. That means a blocked post could appear for a split second before the extension hides it, and that flicker was the thing I most wanted to avoid. I planned an extra step to hide posts before the page draws.</p>
+  <p>Then I measured before building it. On a cold load and while scrolling, on both versions of Reddit, I couldn't see a flash. The extra step never got written. I checked again at the very end, and it still holds.</p>
+
+  <h2>Nothing disappears by accident</h2>
+  <p>Removing a domain moves it to an Archived list with the date, and it keeps its count of hidden posts. Restore puts it back. Deleting it for good takes a second click: the first one asks "Really delete?" and only Confirm goes through with it.</p>
+  <p>You can also block a site straight from Reddit by right-clicking a post's link and choosing Block this domain. The list syncs through your Chrome account, and every open Reddit tab updates right away. You can export it as JSON and import it somewhere else. If the import overlaps your list, you pick whether to keep the larger count or add the two together.</p>
+
+  <h2>Usable without a mouse or a screen</h2>
+  <p>I held the options page and the note in the feed to WCAG 2.2 AA. Everything works from the keyboard, and you can always see where focus is. On a phone-width window the buttons shrink to icons and keep their names for screen readers. I went through it with VoiceOver and with forced colors (the Windows high-contrast mode) switched on. Lighthouse scores the options page 100.</p>
+  <p>One gap: I only have a Mac, so it hasn't been tried with NVDA or JAWS yet. If you use either and something's off, <a href="https://github.com/narcisolobo/reddit-domain-blocker/issues">please open an issue</a>.</p>
+
+  <section class="privacy" id="privacy" aria-labelledby="privacy-heading">
+    <h2 id="privacy-heading">Privacy policy</h2>
+    <p class="updated">Last updated October 30, 2026.</p>
+    <p>Reddit Domain Blocker makes no network requests. It has no analytics and loads no remote code, and it doesn't send anything anywhere.</p>
+    <p>Your list of blocked domains, with the dates you added or archived them, is kept in Chrome's sync storage. That means it follows your Chrome account the way your bookmarks do, if you have sync turned on. The counts of hidden posts are kept in Chrome's local storage and never leave your device.</p>
+    <p>The extension runs only on reddit.com. It reads each post's link to check it against your list, and it doesn't keep the links or the posts it hides. It asks for two permissions: <code>storage</code> to save your list, and <code>contextMenus</code> for the right-click Block this domain entry.</p>
+    <p>This page doesn't use cookies or trackers either.</p>
+  </section>
+</main>
+<footer>
+  <p>Made by Narciso Lobo. Free and open source under the <a href="https://github.com/narcisolobo/reddit-domain-blocker/blob/main/LICENSE">MIT license</a>.</p>
+  <p>Icons from <a href="https://tabler.io/icons">Tabler Icons</a>.</p>
+</footer>
+</body>
+</html>
