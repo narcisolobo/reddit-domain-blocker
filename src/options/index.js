@@ -266,7 +266,10 @@ export async function init(env) {
   const fileInput = document.getElementById("import-file");
   const reviewEl = document.getElementById("import-review");
 
+  let pickToken = 0;
+
   function closeReview() {
+    pickToken++;
     clearImportReview(reviewEl);
     importButton.focus();
   }
@@ -276,24 +279,34 @@ export async function init(env) {
     const file = fileInput.files?.[0];
     if (!file) return;
     fileInput.value = "";
+    const mine = ++pickToken;
     clearImportReview(reviewEl);
     if (file.size > MAX_IMPORT_BYTES) return show(messageFor({ ok: false, reason: "file-too-big" }));
     let text;
     try {
       text = await file.text();
     } catch {
+      if (mine !== pickToken) return;
       return show(messageFor({ ok: false, reason: "unreadable" }));
     }
+    if (mine !== pickToken) return;
     const parsed = parseImport(text);
     const refusal = !parsed.ok ? parsed.reason : parsed.entries.length === 0 ? "nothing-to-import" : null;
     if (refusal) return show(messageFor({ ok: false, reason: refusal }));
     const plan = planImport(lastRecords, lastStats, parsed.entries, "larger");
+    let sending = false;
     renderImportReview(reviewEl, { added: plan.added, merged: plan.merged, skipped: parsed.skipped }, {
       onCancel: closeReview,
       onImport: async (countMode) => {
+        if (sending) return;
+        sending = true;
+        for (const b of reviewEl.querySelectorAll("button")) b.disabled = true;
         const result = await send({ type: "domain/import", text, countMode });
-        clearImportReview(reviewEl);
+        sending = false;
         show(messageFor(result));
+        if (mine !== pickToken) return;
+        pickToken++;
+        clearImportReview(reviewEl);
         importButton.focus();
       },
     });

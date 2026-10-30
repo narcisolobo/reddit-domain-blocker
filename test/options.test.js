@@ -1085,3 +1085,36 @@ test("skipText reads naturally and the list stops at 10", () => {
   assert.equal(root.querySelector("li:last-child").textContent, "and 3 more");
   assert.equal(MAX_IMPORT_BYTES, 1048576);
 });
+
+test("clicking Import twice sends one domain/import", async () => {
+  const { chrome, document } = await setup({ "d:a.com": stored() });
+  let sends = 0;
+  chrome.runtime.setMessageHandler((msg) => {
+    sends++;
+    return handleMessage(msg, { sync: chrome.storage.sync, local: chrome.storage.local });
+  });
+  pick(document, exportJson([entry("a.com", { blockedCount: 3 })]));
+  await settle();
+  const btn = q(document, "Import");
+  btn.click();
+  btn.click();
+  await settle();
+  assert.equal(sends, 1);
+});
+
+test("a slower earlier file pick does not replace a newer review", async () => {
+  const { document } = await setup();
+  const input = document.getElementById("import-file");
+  const choose = (file) => {
+    Object.defineProperty(input, "files", { value: [file], configurable: true });
+    input.dispatchEvent(new document.defaultView.Event("change"));
+  };
+  let release;
+  const slow = exportJson([entry("old.com")]);
+  choose({ size: 10, text: () => new Promise((r) => (release = () => r(slow))) });
+  choose({ size: 10, text: async () => exportJson([entry("new.com"), entry("new2.com")]) });
+  await settle();
+  release();
+  await settle();
+  assert.equal(review(document).querySelector("p").textContent, "2 new, 0 merged, 0 skipped");
+});
