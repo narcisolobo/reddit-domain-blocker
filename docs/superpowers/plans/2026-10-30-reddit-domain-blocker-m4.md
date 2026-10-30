@@ -53,7 +53,7 @@ These are the conditions a user will run into that the spec doesn't spell out. E
   - `export function cssTokens(css: string, selector: string): Record<string, string>`, which reads the `--name: #rrggbb` declarations inside the first block whose selector text matches exactly, such as `:root`, or the `:root` inside `@media (prefers-color-scheme: dark)`. Shorthand `#rgb` values are expanded.
 - `stub.js` and `notice.js` build their `STYLE` with `paletteCss(".bar")` and `paletteCss(".box")`, and their rendered CSS is otherwise unchanged. Delete the "Palette values mirror the stub's…" comment in `notice.js`.
 
-- [ ] **Step 1: Write the failing tests** in `test/contrast.test.js`. Read `extension/options.css` from disk. Reddit page backgrounds are `#ffffff` (new Reddit light, and old Reddit) and `#0e1113` (new Reddit dark).
+- [x] **Step 1: Write the failing tests** in `test/contrast.test.js`. Read `extension/options.css` from disk. Reddit page backgrounds are `#ffffff` (new Reddit light, and old Reddit) and `#0e1113` (new Reddit dark).
   ```js
   test("contrast helper matches known WCAG ratios", () => {
     assert.equal(contrast("#000000", "#ffffff").toFixed(1), "21.0");
@@ -72,10 +72,10 @@ These are the conditions a user will run into that the spec doesn't spell out. E
   test("stub and notice render the same palette", ...); // both STYLE strings contain paletteCss output; no #rrggbb literal outside it
   ```
   Each assertion message names the pair and the ratio, for example `assert.ok(r >= 4.5, \`--muted on --bg is ${r.toFixed(2)}\`)`.
-- [ ] **Step 2: Run** `node --test test/contrast.test.js` and expect FAIL (modules missing).
-- [ ] **Step 3: Implement** the palette module and the helper, and switch `stub.js` and `notice.js` over to `paletteCss`. Run the contrast test. If a pair fails, adjust the failing token by the smallest lightness change that passes, keeping its hue, and list every change (old value, new value, ratio before and after) in your report.
-- [ ] **Step 4: Run** `npm test` and expect PASS. The existing stub and notice tests must pass unchanged.
-- [ ] **Step 5: Commit** `feat: share the content palette and test color contrast`.
+- [x] **Step 2: Run** `node --test test/contrast.test.js` and expect FAIL (modules missing).
+- [x] **Step 3: Implement** the palette module and the helper, and switch `stub.js` and `notice.js` over to `paletteCss`. Run the contrast test. If a pair fails, adjust the failing token by the smallest lightness change that passes, keeping its hue, and list every change (old value, new value, ratio before and after) in your report.
+- [x] **Step 4: Run** `npm test` and expect PASS. The existing stub and notice tests must pass unchanged.
+- [x] **Step 5: Commit** `feat: share the content palette and test color contrast`.
 
 ---
 
@@ -95,7 +95,7 @@ These are the conditions a user will run into that the spec doesn't spell out. E
     `.confirm-text` is not affected.
   - In `options.css`, a `@media (forced-colors: active)` block: `.btn` gets `border: 1px solid ButtonText`, `:focus-visible` gets `outline-color: Highlight`, and `input[type="text"]` gets `border-color: CanvasText`.
 
-- [ ] **Step 1: Write the failing tests** in `test/options.test.js`:
+- [x] **Step 1: Write the failing tests** in `test/options.test.js`:
   ```js
   test("every button has an icon, a visible label, a title, and an aria-label containing the label", async () => {
     // setup with one active and one archived domain; open the delete confirmation; pick a file so the review is open
@@ -114,10 +114,10 @@ These are the conditions a user will run into that the spec doesn't spell out. E
   });
   test("options.css has a forced-colors block for buttons, focus, and the input", ...); // Review Focus 4
   ```
-- [ ] **Step 2: Run** `node --test test/options.test.js` and expect FAIL (the Add button has no `title` or `aria-label`, and the CSS blocks are missing).
-- [ ] **Step 3: Implement** the Add button attributes and the two CSS blocks. For the CSS assertions, use a small regex that extracts a media block's body from the stylesheet text, written inline in the test.
-- [ ] **Step 4: Run** `npm test` and `npm run build`, and expect PASS and a clean build.
-- [ ] **Step 5: Commit** `feat: icon-only option buttons at small widths and forced-colors styles`.
+- [x] **Step 2: Run** `node --test test/options.test.js` and expect FAIL (the Add button has no `title` or `aria-label`, and the CSS blocks are missing).
+- [x] **Step 3: Implement** the Add button attributes and the two CSS blocks. For the CSS assertions, use a small regex that extracts a media block's body from the stylesheet text, written inline in the test.
+- [x] **Step 4: Run** `npm test` and `npm run build`, and expect PASS and a clean build.
+- [x] **Step 5: Commit** `feat: icon-only option buttons at small widths and forced-colors styles`.
 
 ---
 
@@ -134,7 +134,7 @@ These are the conditions a user will run into that the spec doesn't spell out. E
   - Each data cell except the actions cell starts with `<span class="cell-label" aria-hidden="true">` holding its column's header text ("Domain", "Archived", "Posts hidden"). It is hidden at desktop width.
   - In `options.css`, a `@media (max-width: 32rem)` block: `table.domains`, `tbody`, `tr`, and `td` are `display: block`; `thead` is visually hidden with the existing `.visually-hidden` pattern; each `tr` is a band with the existing row rule and padding; `.cell-label` shows inline as muted text before the value; `td.count` aligns left; `td.actions` is not `nowrap` and aligns left; and `td.domain` keeps `overflow-wrap: anywhere`.
 
-- [ ] **Step 1: Write the failing tests** in `test/options.test.js`:
+- [x] **Step 1: Write the failing tests** in `test/options.test.js`:
   ```js
   test("tables are named by their section heading, with no caption", ...);
   // table[aria-labelledby=active-heading] and [archived-heading]; no caption element anywhere
@@ -146,10 +146,10 @@ These are the conditions a user will run into that the spec doesn't spell out. E
   // open it: "Really delete?" present, Confirm focused; Escape returns focus to Delete permanently
   ```
   Update the two existing caption assertions to check `aria-labelledby` instead.
-- [ ] **Step 2: Run** `node --test test/options.test.js` and expect FAIL.
-- [ ] **Step 3: Implement** the markup and the CSS. Keep the `data-count-for` cell updates working: `updateCounts` writes `textContent`, which would delete the label span. Change it to update a dedicated `<span class="count-value">` inside the cell, and update `countCell` to match.
-- [ ] **Step 4: Run** `npm test` and `npm run build`, and expect PASS and a clean build. The "count updates don't rebuild the table" test from M2 must still pass.
-- [ ] **Step 5: Commit** `feat: stack the options tables at narrow widths and name them by their headings`.
+- [x] **Step 2: Run** `node --test test/options.test.js` and expect FAIL.
+- [x] **Step 3: Implement** the markup and the CSS. Keep the `data-count-for` cell updates working: `updateCounts` writes `textContent`, which would delete the label span. Change it to update a dedicated `<span class="count-value">` inside the cell, and update `countCell` to match.
+- [x] **Step 4: Run** `npm test` and `npm run build`, and expect PASS and a clean build. The "count updates don't rebuild the table" test from M2 must still pass.
+- [x] **Step 5: Commit** `feat: stack the options tables at narrow widths and name them by their headings`.
 
 ---
 
@@ -165,7 +165,7 @@ These are the conditions a user will run into that the spec doesn't spell out. E
   - In both components' `STYLE`, a `@media (max-width: 412px)` block: `button > span { display: none; }`, and `button` gets `min-width: 44px; min-height: 44px; justify-content: center; padding: 8px`. The stub's `.label` still truncates or wraps, and never forces the bar wider than its container.
   - `stub.js` `setDomain` keeps the icon when it rewrites the label text. Write the text into a dedicated `<span class="label-text">`.
 
-- [ ] **Step 1: Write the failing tests:**
+- [x] **Step 1: Write the failing tests:**
   ```js
   test("the stub label shows the ban icon before the text, aria-hidden", ...);
   test("setDomain keeps the icon and updates only the text", ...);
@@ -173,10 +173,10 @@ These are the conditions a user will run into that the spec doesn't spell out. E
   test("a 60-character domain wraps instead of widening the stub", ...); // Review Focus 3: .label has min-width 0 and overflow-wrap anywhere in STYLE
   test("notice Dismiss goes icon-only with a 44px target at 412px", ...);
   ```
-- [ ] **Step 2: Run** `node --test test/stub.test.js test/notice.test.js` and expect FAIL.
-- [ ] **Step 3: Implement.** Keep `all: initial` on `:host`.
-- [ ] **Step 4: Run** `npm test` and `npm run build`, and expect PASS and a clean build.
-- [ ] **Step 5: Commit** `feat: hidden-marker icon and icon-only buttons in the stub and notice`.
+- [x] **Step 2: Run** `node --test test/stub.test.js test/notice.test.js` and expect FAIL.
+- [x] **Step 3: Implement.** Keep `all: initial` on `:host`.
+- [x] **Step 4: Run** `npm test` and `npm run build`, and expect PASS and a clean build.
+- [x] **Step 5: Commit** `feat: hidden-marker icon and icon-only buttons in the stub and notice`.
 
 ---
 
@@ -191,7 +191,7 @@ These are the conditions a user will run into that the spec doesn't spell out. E
 - Consumes: the options page (`setup()`-style JSDOM from `options.html` plus `init`), `createStub`, and the notice's public API from `src/content/notice.js`.
 - Produces: a test that injects `axe.source` into the JSDOM window and runs `axe.run(document, { rules: { "color-contrast": { enabled: false } } })` for each state below. `color-contrast` is off because jsdom doesn't compute styles, and Task 1's test covers contrast. It asserts `violations` is empty, with a message listing each violation's id and target.
 
-- [ ] **Step 1: Write the tests** in `test/axe.test.js`:
+- [x] **Step 1: Write the tests** in `test/axe.test.js`:
   ```js
   test("axe: options page, empty", ...);
   test("axe: options page with active and archived rows", ...);
@@ -202,9 +202,9 @@ These are the conditions a user will run into that the spec doesn't spell out. E
   test("axe: the notice shown with a refusal message", ...);
   ```
   For the shadow-DOM components, attach them to a plain `<main>` in a JSDOM document and run axe on the document. axe-core walks open shadow roots.
-- [ ] **Step 2: Run** `node --test test/axe.test.js`. Any failure is a real finding: fix the cause in the source, not by disabling a rule. Disabling any rule other than `color-contrast` needs a comment naming why jsdom can't evaluate it.
-- [ ] **Step 3: Run** `npm test` and expect PASS. The test output must stay clean, with no axe console noise.
-- [ ] **Step 4: Commit** `test: run axe-core over the options page, stub, and notice`.
+- [x] **Step 2: Run** `node --test test/axe.test.js`. Any failure is a real finding: fix the cause in the source, not by disabling a rule. Disabling any rule other than `color-contrast` needs a comment naming why jsdom can't evaluate it.
+- [x] **Step 3: Run** `npm test` and expect PASS. The test output must stay clean, with no axe console noise.
+- [x] **Step 4: Commit** `test: run axe-core over the options page, stub, and notice`.
 
 ---
 
@@ -215,7 +215,7 @@ These are the conditions a user will run into that the spec doesn't spell out. E
 
 The automation browser can't open reddit.com or `chrome://extensions`, so the owner runs these in their own Chrome with `extension/` loaded unpacked and reports back.
 
-- [ ] **Step 1: The owner runs the checks:**
+- [x] **Step 1: The owner runs the checks:**
   1. **Lighthouse** accessibility audit of the options page, in DevTools. Record the score and any items.
   2. **Small viewport:** in DevTools device mode at 412px and at 320px, every options-page button is icon-only with a tooltip on hover, "Really delete?" stays as text, the tables stack, and nothing scrolls sideways. Repeat at 375px with the Archived table filled. On Reddit at 412px or narrower, the stub's buttons are icon-only.
   3. **Zoom and spacing:** at 200% browser zoom the options page is usable with no clipped or overlapping text. Apply a text-spacing bookmarklet (line height 1.5, paragraph spacing 2, letter spacing 0.12, word spacing 0.16) and check the same.
@@ -224,6 +224,6 @@ The automation browser can't open reddit.com or `chrome://extensions`, so the ow
   6. **Keyboard only:** every flow in spec section 9 that has UI (add, remove, restore, two-step delete, export, import, Show post / Hide post, Unblock domain, the notice's Escape) works with no mouse and no trap, with focus always visible.
   7. **Screen reader, VoiceOver (macOS):** the options page (headings, both tables, the count column, status and error announcements, the import review summary) and a stub on Reddit (its group name and buttons). One of NVDA or JAWS as well, if the owner has a Windows machine. If not, record that it wasn't run.
   8. **Flash (acceptance 13):** confirm the M1 finding still holds: no visible flash of blocked posts on cold load or infinite scroll, on new and old Reddit.
-- [ ] **Step 2: Fix any failures**, one commit per fix, each with a test where jsdom can express it.
-- [ ] **Step 3: Record the results** in `NOTES.md` under `## M4 verification`, in the same table form as earlier milestones, including the flash decision (no pre-paint step added, if check 8 holds) and any screen-reader gap. Update the `README.md` status line: all milestones (M0–M4) are implemented and checked. Tick this plan's boxes.
-- [ ] **Step 4: Commit** `docs: record M4 verification`.
+- [x] **Step 2: Fix any failures**, one commit per fix, each with a test where jsdom can express it.
+- [x] **Step 3: Record the results** in `NOTES.md` under `## M4 verification`, in the same table form as earlier milestones, including the flash decision (no pre-paint step added, if check 8 holds) and any screen-reader gap. Update the `README.md` status line: all milestones (M0–M4) are implemented and checked. Tick this plan's boxes.
+- [x] **Step 4: Commit** `docs: record M4 verification`.
