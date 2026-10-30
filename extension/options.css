@@ -111,7 +111,7 @@ input[aria-invalid="true"] { border: 2px solid var(--error); }
 h2 { font-size: 1.25rem; margin: 2rem 0 0; }
 section + section { margin-top: 3rem; }
 
-.transfer { display: flex; gap: 0.5rem; margin-top: 1.5rem; }
+.transfer { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.5rem; }
 .btn-restore { color: var(--grey-text); border-color: var(--grey-border); }
 td.actions .btn + .btn { margin-left: 0.5rem; }
 td.count, th:nth-last-child(2) { text-align: right; font-variant-numeric: tabular-nums; padding-left: 1rem; padding-right: 1rem; }
@@ -157,4 +157,42 @@ td.actions { text-align: right; }
 #import-review fieldset { border: 0; margin: 1rem 0 0; padding: 0; }
 #import-review legend { padding: 0; font-weight: 600; }
 #import-review label { display: block; margin-top: 0.5rem; }
-.review-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+.review-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+
+/* Stacked rows at narrow widths. The thead stays in the accessibility tree. */
+.cell-label { display: none; }
+
+@media (max-width: 32rem) {
+  table.domains, tbody, tr, td { display: block; }
+  thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+  }
+  tr { padding: 0.875rem 0; border-bottom: 1px solid var(--rule); }
+  td, th:not(:last-child), td:not(:last-child) { padding: 0.125rem 0; border-bottom: 0; }
+  .cell-label { display: inline; color: var(--muted); margin-right: 0.5rem; }
+  td.count { text-align: left; padding-left: 0; padding-right: 0; }
+  td.actions { white-space: normal; text-align: left; padding-top: 0.5rem; }
+  td.domain { overflow-wrap: anywhere; }
+  .confirm-group { justify-content: flex-start; }
+}
+
+/* Small screens: icon-only buttons keep their aria-label and title. The
+   "Really delete?" text is not a button label and stays visible. */
+@media (max-width: 412px) {
+  .btn > span { display: none; }
+  .btn, .btn-small { min-width: 44px; min-height: 44px; justify-content: center; padding: 0.5rem; }
+  .btn svg { width: 20px; height: 20px; }
+}
+
+/* The green and red fills are dropped, so every button gets a system-color border. */
+@media (forced-colors: active) {
+  .btn { border: 1px solid ButtonText; }
+  :focus-visible { outline-color: Highlight; }
+  input[type="text"] { border-color: CanvasText; }
+}

@@ -10,6 +10,9 @@ import { handleMessage } from "../src/background/blocklist.js";
 
 const HTML = readFileSync(new URL("../extension/options.html", import.meta.url), "utf8");
 
+// A data cell's value, without its stacked-layout label.
+const cellValue = (td) => td.textContent.replace(td.querySelector(".cell-label")?.textContent ?? "", "");
+
 function rec(domain, status = "active") {
   return {
     domain,
@@ -88,13 +91,13 @@ test("messageFor is total: unknown reason, missing reason, non-objects", () => {
   assert.deepEqual(messageFor("x"), generic);
 });
 
-test("renderList shows active domains only, sorted, with caption and th scope=col", () => {
+test("renderList shows active domains only, sorted, named by heading and th scope=col", () => {
   const { document } = page();
   const root = document.getElementById("list");
   renderList(root, [rec("zeta.com"), rec("old.com", "archived"), rec("alpha.com")], new Map(), { onRemove() {} });
-  const cells = [...root.querySelectorAll("td.domain")].map((td) => td.textContent);
+  const cells = [...root.querySelectorAll("td.domain")].map(cellValue);
   assert.deepEqual(cells, ["alpha.com", "zeta.com"]);
-  assert.equal(root.querySelector("caption").textContent, "Blocked domains");
+  assert.equal(root.querySelector("table").getAttribute("aria-labelledby"), "active-heading");
   const ths = [...root.querySelectorAll("th")];
   assert.equal(ths.length, 3);
   assert.ok(ths.every((th) => th.getAttribute("scope") === "col"));
@@ -112,7 +115,7 @@ test("Remove button has text, aria-label, title, hidden svg, and calls onRemove"
   const btn = root.querySelector("button");
   assert.equal(btn.textContent.trim(), "Remove");
   assert.equal(btn.getAttribute("aria-label"), "Remove example.com");
-  assert.equal(btn.getAttribute("title"), "Archive example.com");
+  assert.equal(btn.getAttribute("title"), "Remove example.com");
   assert.equal(btn.querySelector("svg").getAttribute("aria-hidden"), "true");
   btn.click();
   assert.deepEqual(removed, ["example.com"]);
@@ -172,7 +175,7 @@ test("submitting sends domain/add with source options; success clears input and 
   assert.equal(document.getElementById("error").textContent, "");
   assert.equal(input.value, "");
   assert.equal(document.activeElement, input);
-  assert.deepEqual([...document.querySelectorAll("td.domain")].map((t) => t.textContent), ["thedailybeast.com"]);
+  assert.deepEqual([...document.querySelectorAll("td.domain")].map(cellValue), ["thedailybeast.com"]);
   dom.window.close();
 });
 
@@ -272,7 +275,7 @@ test("an external storage change re-renders the list without a reload", async ()
   assert.equal(document.querySelector("table"), null);
   await chrome.storage.sync.set({ "d:elsewhere.com": stored() });
   await settle();
-  assert.deepEqual([...document.querySelectorAll("td.domain")].map((t) => t.textContent), ["elsewhere.com"]);
+  assert.deepEqual([...document.querySelectorAll("td.domain")].map(cellValue), ["elsewhere.com"]);
 });
 
 test("a malformed record in storage is ignored", async () => {
@@ -283,7 +286,7 @@ test("a malformed record in storage is ignored", async () => {
     "d:nul.com": null,
     "other": { s: "a" },
   });
-  assert.deepEqual([...document.querySelectorAll("td.domain")].map((t) => t.textContent), ["good.com"]);
+  assert.deepEqual([...document.querySelectorAll("td.domain")].map(cellValue), ["good.com"]);
 });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -354,14 +357,14 @@ test("a slower earlier storage read does not overwrite a newer one", async () =>
   await settle();
   releaseSlow();
   await settle();
-  const domains = [...document.querySelectorAll("td.domain")].map((t) => t.textContent);
+  const domains = [...document.querySelectorAll("td.domain")].map(cellValue);
   assert.deepEqual(domains, ["fast.com", "old.com", "slow.com"]);
 });
 
 // ---- M2 Task 4: counts, Archived section, Restore ----
 
 const stat = (n) => ({ blockedCount: n, lastBlockedAt: 5 });
-const countOf = (document, d) => document.querySelector(`[data-count-for="${d}"]`).textContent;
+const countOf = (document, d) => document.querySelector(`[data-count-for="${d}"] .count-value`).textContent;
 
 test("active table shows Posts hidden from local stats, 0 when missing", async () => {
   const { chrome, document } = await setup({ "d:a.com": stored(), "d:b.com": stored() });
@@ -372,10 +375,10 @@ test("active table shows Posts hidden from local stats, 0 when missing", async (
   assert.equal(document.querySelector('td.count[data-count-for="a.com"]').className, "count");
 });
 
-test("archived table: caption, th scope=col, time datetime, counts, Restore button names", async () => {
+test("archived table: heading name, th scope=col, time datetime, counts, Restore button names", async () => {
   const { document } = await setup({ "d:old.com": stored("archived") });
   const root = document.getElementById("archived-list");
-  assert.equal(root.querySelector("caption").textContent, "Archived domains");
+  assert.equal(root.querySelector("table").getAttribute("aria-labelledby"), "archived-heading");
   const ths = [...root.querySelectorAll("th")];
   assert.deepEqual(ths.map((t) => t.textContent), ["Domain", "Archived", "Posts hidden", "Actions"]);
   assert.ok(ths.every((t) => t.getAttribute("scope") === "col"));
@@ -387,7 +390,7 @@ test("archived table: caption, th scope=col, time datetime, counts, Restore butt
   assert.equal(btn.dataset.domain, "old.com");
   assert.equal(btn.textContent.trim(), "Restore");
   assert.equal(btn.getAttribute("aria-label"), "Restore old.com");
-  assert.equal(btn.getAttribute("title"), "Block old.com again");
+  assert.equal(btn.getAttribute("title"), "Restore old.com");
   assert.equal(btn.querySelector("svg").getAttribute("aria-hidden"), "true");
   assert.ok(root.querySelector('button[data-action="delete"]'));
 });
@@ -400,7 +403,7 @@ test("renderArchived sorts by domain and wires handlers", () => {
     onRestore: (d) => calls.push(["restore", d]),
     onDelete: (d) => calls.push(["delete", d]),
   }, null);
-  assert.deepEqual([...root.querySelectorAll("td.domain")].map((t) => t.textContent), ["a.com", "z.com"]);
+  assert.deepEqual([...root.querySelectorAll("td.domain")].map(cellValue), ["a.com", "z.com"]);
   root.querySelector('button[data-action="restore"]').click();
   root.querySelector('button[data-action="delete"]').click();
   assert.deepEqual(calls, [["restore", "a.com"], ["delete", "a.com"]]);
@@ -433,7 +436,7 @@ test("Restore sends domain/restore, announces Restored, row moves to the active 
   await settle();
   assert.deepEqual(sent, [{ type: "domain/restore", domain: "old.com" }]);
   assert.equal(document.querySelector('[role="status"]').textContent, "Restored old.com");
-  assert.deepEqual([...document.querySelectorAll("#list td.domain")].map((t) => t.textContent), ["old.com"]);
+  assert.deepEqual([...document.querySelectorAll("#list td.domain")].map(cellValue), ["old.com"]);
   assert.equal(document.querySelector("#archived-list table"), null);
 });
 
@@ -523,11 +526,11 @@ test("first Delete click shows the confirm group, writes nothing, focuses Confir
   assert.ok(group);
   assert.match(group.textContent, /Really delete\?/);
   const confirm = q(document, "Confirm delete of old.com");
-  assert.equal(confirm.title, "Delete old.com permanently");
+  assert.equal(confirm.title, "Confirm delete of old.com");
   assert.equal(confirm.className.includes("btn-remove"), true);
   assert.match(confirm.textContent, /Confirm/);
   const cancel = q(document, "Cancel delete of old.com");
-  assert.equal(cancel.title, "Keep old.com");
+  assert.equal(cancel.title, "Cancel delete of old.com");
   assert.match(cancel.textContent, /Cancel/);
   assert.equal(confirm.classList.contains("btn-small"), true);
   assert.equal(cancel.classList.contains("btn-small"), true);
@@ -846,10 +849,10 @@ test("Export list and Import list… buttons are grey outlined with icons, label
     assert.ok(b.querySelector("svg[aria-hidden='true']"));
   }
   assert.equal(exp.getAttribute("aria-label"), "Export list");
-  assert.equal(exp.title, "Download your list as a JSON file");
+  assert.equal(exp.title, "Export list");
   assert.equal(exp.textContent.trim(), "Export list");
   assert.equal(imp.getAttribute("aria-label"), "Import list…");
-  assert.equal(imp.title, "Load a list from an exported JSON file");
+  assert.equal(imp.title, "Import list…");
   assert.equal(imp.textContent.trim(), "Import list…");
   const file = document.getElementById("import-file");
   assert.equal(file.type, "file");
@@ -952,8 +955,8 @@ test("picking a file shows the review with counts and skips, and focuses its hea
   const lines = [...root.querySelectorAll("li")].map((li) => li.textContent);
   assert.deepEqual(lines, ["reddit.com is a Reddit domain", "not a domain isn't a valid domain"]);
   assert.equal(document.getElementById("import-file").value, "");
-  assert.equal(q(document, "Import").title, "Add these domains to your list");
-  assert.equal(q(document, "Cancel import").title, "Don't import");
+  assert.equal(q(document, "Import").title, "Import");
+  assert.equal(q(document, "Cancel import").title, "Cancel import");
   assert.ok(q(document, "Import").classList.contains("btn-restore"));
   assert.equal(root.querySelector("[role=status],[role=alert],[aria-live]"), null);
 });
@@ -1013,7 +1016,7 @@ test("imported domains and counts appear without a reload", async () => {
   await settle();
   q(document, "Import").click();
   await settle();
-  assert.equal(document.querySelector('[data-count-for="b.com"]').textContent, "7");
+  assert.equal(countOf(document, "b.com"), "7");
   assert.ok(q(document, "Remove b.com"));
 });
 
@@ -1146,4 +1149,129 @@ test("a slower earlier file pick does not replace a newer review", async () => {
   release();
   await settle();
   assert.equal(review(document).querySelector("p").textContent, "2 new, 0 merged, 0 skipped");
+});
+
+// ---- Button names and CSS ----
+
+const CSS = readFileSync(new URL("../extension/options.css", import.meta.url), "utf8");
+function mediaBody(css, query) {
+  const start = css.indexOf(`@media (${query})`);
+  assert.notEqual(start, -1, `missing @media (${query})`);
+  const open = css.indexOf("{", start);
+  let depth = 0;
+  for (let i = open; i < css.length; i++) {
+    if (css[i] === "{") depth++;
+    if (css[i] === "}" && --depth === 0) return css.slice(open + 1, i);
+  }
+  assert.fail("unterminated media block");
+}
+function ruleFor(body, selectorPattern) {
+  const m = [...body.matchAll(/([^{}]+)\{([^}]*)\}/g)].find((r) => selectorPattern.test(r[1]));
+  assert.ok(m, `no rule matching ${selectorPattern}`);
+  return { selector: m[1], decls: m[2] };
+}
+
+test("every button has an icon, a visible label, a title, and an aria-label containing the label", async () => {
+  const { document } = await setup({ "d:a.com": stored(), "d:old.com": stored("archived") });
+  q(document, "Delete permanently: old.com").click();
+  await settle();
+  pick(document, exportJson([entry("b.com")]));
+  await settle();
+  const buttons = [...document.querySelectorAll("button")];
+  assert.ok(buttons.length >= 7);
+  for (const b of buttons) {
+    const label = b.querySelector("span")?.textContent ?? "";
+    assert.ok(b.querySelector("svg[aria-hidden=true]"), `${label}: icon`);
+    assert.ok(label.length > 0, "visible label");
+    assert.ok(b.title.length > 0, `${label}: title`);
+    assert.equal(b.title, b.getAttribute("aria-label"), `${label}: title equals aria-label`);
+    assert.ok(b.getAttribute("aria-label")?.includes(label), `${label}: aria-label contains label`);
+  }
+});
+
+test("options.css hides button text and enlarges targets at 412px, including btn-small", () => {
+  const body = mediaBody(CSS, "max-width: 412px");
+  assert.match(ruleFor(body, /\.btn\s*>\s*span/).decls, /display:\s*none/);
+  const target = ruleFor(body, /\.btn-small/);
+  assert.match(target.selector, /(^|,)\s*\.btn\s*(,|$)/);
+  assert.match(target.decls, /min-width:\s*44px/);
+  assert.match(target.decls, /min-height:\s*44px/);
+  assert.match(target.decls, /justify-content:\s*center/);
+  assert.match(target.decls, /padding:\s*0\.5rem/);
+  assert.match(ruleFor(body, /\.btn svg/).decls, /width:\s*20px;\s*height:\s*20px/);
+  assert.doesNotMatch(body, /confirm-text/);
+});
+
+test("button rows wrap, and the 412px block follows the base .btn-small rule", () => {
+  assert.match(ruleFor(CSS, /^\s*\.transfer\s*$/).decls, /flex-wrap:\s*wrap/);
+  assert.match(ruleFor(CSS, /^\s*\.review-actions\s*$/).decls, /flex-wrap:\s*wrap/);
+  assert.ok(CSS.indexOf("\n.btn-small {") >= 0);
+  assert.ok(CSS.indexOf("\n.btn-small {") < CSS.indexOf("@media (max-width: 412px)"));
+});
+
+test("options.css has a forced-colors block for buttons, focus, and the input", () => {
+  const body = mediaBody(CSS, "forced-colors: active");
+  assert.match(ruleFor(body, /\.btn\b/).decls, /border:\s*1px solid ButtonText/);
+  assert.match(ruleFor(body, /:focus-visible/).decls, /outline-color:\s*Highlight/);
+  assert.match(ruleFor(body, /input\[type="text"\]/).decls, /border-color:\s*CanvasText/);
+});
+
+// ---- M4 Task 3: stacked tables ----
+
+test("tables are named by their section heading, with no caption", async () => {
+  const { document } = await setup({ "d:a.com": stored(), "d:old.com": stored("archived") });
+  assert.ok(document.querySelector("#list table[aria-labelledby=active-heading]"));
+  assert.ok(document.querySelector("#archived-list table[aria-labelledby=archived-heading]"));
+  assert.ok(document.getElementById("active-heading"));
+  assert.ok(document.getElementById("archived-heading"));
+  assert.equal(document.querySelector("caption"), null);
+});
+
+test("tables carry explicit table roles", async () => {
+  const { document } = await setup({ "d:a.com": stored(), "d:old.com": stored("archived") });
+  for (const id of ["list", "archived-list"]) {
+    const root = document.getElementById(id);
+    assert.equal(root.querySelector("table").getAttribute("role"), "table");
+    for (const g of root.querySelectorAll("thead, tbody")) assert.equal(g.getAttribute("role"), "rowgroup");
+    for (const r of root.querySelectorAll("tr")) assert.equal(r.getAttribute("role"), "row");
+    for (const h of root.querySelectorAll("th")) assert.equal(h.getAttribute("role"), "columnheader");
+    for (const c of root.querySelectorAll("td")) assert.equal(c.getAttribute("role"), "cell");
+  }
+});
+
+test("stacked-layout cell labels are aria-hidden and match the column headers", async () => {
+  const { document } = await setup({ "d:old.com": stored("archived") });
+  const row = document.querySelector("#archived-list tbody tr");
+  const labels = [...row.querySelectorAll(".cell-label")];
+  assert.deepEqual(labels.map((l) => l.textContent), ["Domain", "Archived", "Posts hidden"]);
+  assert.ok(labels.every((l) => l.getAttribute("aria-hidden") === "true"));
+  assert.equal(row.querySelector("td.actions .cell-label"), null);
+});
+
+test("options.css stacks tables at 32rem and hides thead visually, not with display:none", () => {
+  const body = mediaBody(CSS, "max-width: 32rem");
+  for (const sel of ["table.domains", "tbody", "tr", "td"]) {
+    assert.match(ruleFor(body, new RegExp("(^|,)\\s*" + sel.replace(".", "\\.") + "\\s*(,|$)")).decls, /display:\s*block/);
+  }
+  const thead = ruleFor(body, /thead/).decls;
+  assert.doesNotMatch(thead, /display:\s*none/);
+  assert.match(thead, /clip/);
+  assert.match(ruleFor(body, /\.cell-label/).decls, /display:\s*inline/);
+  assert.match(ruleFor(body, /td\.actions/).decls, /white-space:\s*normal/);
+  assert.match(ruleFor(body, /td\.domain/).decls, /overflow-wrap:\s*anywhere/);
+  assert.ok(CSS.indexOf("@media (max-width: 32rem)") < CSS.indexOf("@media (max-width: 412px)"));
+  assert.match(CSS, /\.cell-label\s*\{[^}]*display:\s*none/);
+  assert.match(ruleFor(body, /\.confirm-group/).decls, /justify-content:\s*flex-start/);
+});
+
+test("the delete confirmation works the same with the stacked markup", async () => {
+  const { document } = await setup({ "d:old.com": stored("archived") });
+  q(document, "Delete permanently: old.com").click();
+  await settle();
+  assert.match(document.querySelector('[role="group"]').textContent, /Really delete\?/);
+  const confirm = q(document, "Confirm delete of old.com");
+  assert.equal(document.activeElement, confirm);
+  confirm.dispatchEvent(new document.defaultView.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+  await settle();
+  assert.equal(document.activeElement, q(document, "Delete permanently: old.com"));
 });

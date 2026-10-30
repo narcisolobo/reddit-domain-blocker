@@ -135,3 +135,26 @@ Run by the owner in their own Chrome with `extension/` loaded unpacked. Numbers 
 
 - Fixed: while a new import review was open, the previous import's result stayed in the message area above it and read as that review's outcome. Picking a file now clears it.
 - Open, for M4: the Archived table is wider than a 375px viewport (Restore and Delete permanently stack and run past the content), so the page scrolls sideways, and short domains break mid-word. M4's icon-only buttons at 412px and stacked rows at 320px (spec 5.6, 6.4) cover this.
+
+## M4 verification
+
+Run by the owner in their own Chrome with `extension/` loaded unpacked. Numbers are the checks in Task 6, Step 1 of the M4 plan.
+
+| Check | Result |
+|---|---|
+| 1 Lighthouse accessibility audit of the options page | Pass. 100 on mobile and 100 on desktop (Lighthouse 13.5.0, axe 4.13). Every applicable audit passes, including color-contrast and target-size; label-content-name-mismatch passes on desktop and is not applicable on mobile, where button text is hidden at 412px and narrower. Only Lighthouse's standard manual-review items remain, covered by checks 6 and 7. Chrome won't let Lighthouse audit `chrome-extension://` pages, so it ran on a localhost copy of the options page using the test suite's fake storage, filled with sample data |
+| 2 Small viewport: 412px, 375px and 320px with both tables filled; the stub at 412px or narrower | Pass. Buttons are icon-only with tooltips, the tables stack, a long domain wraps, the delete confirmation sits on the left with "Really delete?" kept as text, and nothing scrolls sideways. A clipped row in one full-page DevTools capture was a stitching glitch, confirmed live. At 400% zoom on the real extension page (innerWidth 320) neither table scrolls sideways. On Reddit, the stub in a narrow pane shows the ban icon and icon-only buttons |
+| 3 200% zoom and text-spacing override | Pass. The 400% run covers 200%. With line height 1.5, letter spacing 0.12em, word spacing 0.16em and paragraph spacing 2em on the real options page, with the import review open and an archived row showing, nothing is clipped or overlapping |
+| 4 Forced colors (DevTools emulation) on the options page and a Reddit stub | Pass. Options page, wide and narrow: every button has a border, icons and labels show, Add and Remove read clearly without their fills, and the focus ring shows. Stub on new Reddit, wide and narrow: dashed border, ban icon, text, bordered buttons and a visible focus ring |
+| 5 Stub contrast in context: new Reddit light, new Reddit dark, old Reddit | Pass. The label reads clearly and the dashed border stands out from the page in all three; buttons are grey outlined |
+| 6 Keyboard only, every flow in spec 9 with UI | Pass. Options page: add, Remove, Restore, Delete permanently with Confirm and with Escape, Export, Import. Reddit: Show post, Hide post, Unblock domain, Escape on the notice. Focus always visible, no trap. Escape on the notice returned focus to the post that last had it, which closes the M2 follow-up in Chrome |
+| 7 Screen reader: VoiceOver (macOS) | Pass. Headings rotor lists Reddit Domain Blocker (h1), then Review import (while open), Blocked domains and Archived (h2), with no duplicates. Both tables are named by their headings and the count column is read as "Posts hidden" once. Add's status and the `reddit.com` error are announced with focus left in the field. The import review summary is read. The stub reads its group name, then Show post and Unblock domain as buttons |
+| 7 Screen reader: NVDA or JAWS | Not run. The owner has no Windows machine. Spec 6.5 asks for one of them, so this is a known gap |
+| 8 Flash (acceptance 13): cold load and infinite scroll, new and old Reddit | Pass. No visible flash of blocked posts, so the M1 finding holds and no pre-paint step is added |
+
+### Follow-ups found during verification
+
+- Closed: M3's open item (the Archived table running past a 375px viewport, short domains breaking mid-word) is covered by the icon-only buttons and stacked rows, checked in 2.
+- Closed: M2's notice focus fix ("Needs a re-check in Chrome") is confirmed in Chrome by check 6.
+- Open: NVDA/JAWS run (check 7), when a Windows machine is available.
+- Fixed: in `test/axe.test.js`, the comment on the `form-field-multiple-labels` allow-list entry blamed layout. The real cause is axe's `label[for=id]` lookup on the import review's id-less radios in jsdom; the comment now says so. The markup is correct and was left unchanged, since it had just been signed off by hand.

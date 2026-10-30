@@ -86,25 +86,54 @@ function el(doc, tag, className, text) {
 function th(doc, text, { hidden = false } = {}) {
   const node = doc.createElement("th");
   node.scope = "col";
+  node.setAttribute("role", "columnheader");
   if (hidden) node.append(el(doc, "span", "visually-hidden", text));
   else node.textContent = text;
   return node;
 }
 
+// Shown only in the stacked layout; the column header already names the cell
+// for a screen reader, so the label is hidden from it.
+function cellLabel(doc, text) {
+  const label = el(doc, "span", "cell-label", text);
+  label.setAttribute("aria-hidden", "true");
+  return label;
+}
+
+function dataCell(doc, className, label, ...content) {
+  const td = el(doc, "td", className);
+  td.setAttribute("role", "cell");
+  td.append(cellLabel(doc, label), ...content);
+  return td;
+}
+
 function countCell(doc, domain, stats) {
-  const td = el(doc, "td", "count", String(stats.get(domain)?.blockedCount ?? 0));
+  const td = dataCell(doc, "count", "Posts hidden", el(doc, "span", "count-value", String(stats.get(domain)?.blockedCount ?? 0)));
   td.dataset.countFor = domain;
   return td;
 }
 
-function rowButton(doc, { action, domain, className, iconName, label, ariaLabel, title, onClick }) {
+function actionsCell(doc) {
+  const td = el(doc, "td", "actions");
+  td.setAttribute("role", "cell");
+  return td;
+}
+
+function row(doc, ...cells) {
+  const tr = doc.createElement("tr");
+  tr.setAttribute("role", "row");
+  tr.append(...cells);
+  return tr;
+}
+
+function rowButton(doc, { action, domain, className, iconName, label, name, onClick }) {
   const btn = doc.createElement("button");
   btn.type = "button";
   btn.className = className;
   btn.dataset.domain = domain;
   btn.dataset.action = action;
-  btn.setAttribute("aria-label", ariaLabel);
-  btn.title = title;
+  btn.setAttribute("aria-label", name);
+  btn.title = name;
   btn.innerHTML = `${icon(iconName)}<span>${label}</span>`;
   btn.addEventListener("click", () => onClick(domain));
   return btn;
@@ -122,8 +151,7 @@ function confirmGroup(doc, domain, handlers) {
       className: "btn btn-small btn-remove",
       iconName: "trash",
       label: "Confirm",
-      ariaLabel: `Confirm delete of ${domain}`,
-      title: `Delete ${domain} permanently`,
+      name: `Confirm delete of ${domain}`,
       onClick: handlers.onConfirm,
     }),
     rowButton(doc, {
@@ -132,8 +160,7 @@ function confirmGroup(doc, domain, handlers) {
       className: "btn btn-small btn-restore",
       iconName: "x",
       label: "Cancel",
-      ariaLabel: `Cancel delete of ${domain}`,
-      title: `Keep ${domain}`,
+      name: `Cancel delete of ${domain}`,
       onClick: handlers.onCancel,
     }),
   );
@@ -149,14 +176,17 @@ function confirmGroup(doc, domain, handlers) {
   return group;
 }
 
-function buildTable(doc, captionText, headers) {
+// The section heading names the table, so there is no caption to repeat it.
+// Explicit roles keep the table semantics when the narrow layout changes display.
+function buildTable(doc, labelledBy, headers) {
   const table = el(doc, "table", "domains");
-  table.append(el(doc, "caption", "", captionText));
+  table.setAttribute("role", "table");
+  table.setAttribute("aria-labelledby", labelledBy);
   const thead = doc.createElement("thead");
-  const row = doc.createElement("tr");
-  row.append(...headers);
-  thead.append(row);
+  thead.setAttribute("role", "rowgroup");
+  thead.append(row(doc, ...headers));
   const tbody = doc.createElement("tbody");
+  tbody.setAttribute("role", "rowgroup");
   table.append(thead, tbody);
   return { table, tbody };
 }
@@ -173,14 +203,13 @@ export function renderList(root, records, stats, handlers) {
     return;
   }
 
-  const { table, tbody } = buildTable(doc, "Blocked domains", [
+  const { table, tbody } = buildTable(doc, "active-heading", [
     th(doc, "Domain"),
     th(doc, "Posts hidden"),
     th(doc, "Actions", { hidden: true }),
   ]);
   for (const rec of active) {
-    const tr = doc.createElement("tr");
-    const tdAction = el(doc, "td", "actions");
+    const tdAction = actionsCell(doc);
     tdAction.append(
       rowButton(doc, {
         action: "remove",
@@ -188,26 +217,22 @@ export function renderList(root, records, stats, handlers) {
         className: "btn btn-remove",
         iconName: "trash",
         label: "Remove",
-        ariaLabel: `Remove ${rec.domain}`,
-        title: `Archive ${rec.domain}`,
+        name: `Remove ${rec.domain}`,
         onClick: handlers.onRemove,
       }),
     );
-    tr.append(el(doc, "td", "domain", rec.domain), countCell(doc, rec.domain, stats), tdAction);
-    tbody.append(tr);
+    tbody.append(row(doc, dataCell(doc, "domain", "Domain", rec.domain), countCell(doc, rec.domain, stats), tdAction));
   }
   root.append(table);
 }
 
 function formatDate(doc, ms) {
-  if (!Number.isFinite(ms)) return el(doc, "td", "archived-at");
+  if (!Number.isFinite(ms)) return dataCell(doc, "archived-at", "Archived");
   const date = new Date(ms);
   const time = doc.createElement("time");
   time.dateTime = date.toISOString();
   time.textContent = date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-  const td = el(doc, "td", "archived-at");
-  td.append(time);
-  return td;
+  return dataCell(doc, "archived-at", "Archived", time);
 }
 
 // `confirming` is the domain whose Delete is awaiting confirmation, or null.
@@ -221,15 +246,14 @@ export function renderArchived(root, records, stats, handlers, confirming = null
     return;
   }
 
-  const { table, tbody } = buildTable(doc, "Archived domains", [
+  const { table, tbody } = buildTable(doc, "archived-heading", [
     th(doc, "Domain"),
     th(doc, "Archived"),
     th(doc, "Posts hidden"),
     th(doc, "Actions", { hidden: true }),
   ]);
   for (const rec of archived) {
-    const tr = doc.createElement("tr");
-    const tdAction = el(doc, "td", "actions");
+    const tdAction = actionsCell(doc);
     tdAction.append(
       rowButton(doc, {
         action: "restore",
@@ -237,8 +261,7 @@ export function renderArchived(root, records, stats, handlers, confirming = null
         className: "btn btn-restore",
         iconName: "arrow-back-up",
         label: "Restore",
-        ariaLabel: `Restore ${rec.domain}`,
-        title: `Block ${rec.domain} again`,
+        name: `Restore ${rec.domain}`,
         onClick: handlers.onRestore,
       }),
       rec.domain === confirming
@@ -249,19 +272,17 @@ export function renderArchived(root, records, stats, handlers, confirming = null
             className: "btn btn-remove",
             iconName: "trash",
             label: "Delete permanently",
-            ariaLabel: `Delete permanently: ${rec.domain}`,
-            title: `Delete ${rec.domain} and its history`,
+            name: `Delete permanently: ${rec.domain}`,
             onClick: handlers.onDelete,
           }),
     );
-    tr.append(el(doc, "td", "domain", rec.domain), formatDate(doc, rec.archivedAt), countCell(doc, rec.domain, stats), tdAction);
-    tbody.append(tr);
+    tbody.append(row(doc, dataCell(doc, "domain", "Domain", rec.domain), formatDate(doc, rec.archivedAt), countCell(doc, rec.domain, stats), tdAction));
   }
   root.append(table);
 }
 
 export function updateCounts(doc, stats) {
   for (const cell of doc.querySelectorAll("[data-count-for]")) {
-    cell.textContent = String(stats.get(cell.dataset.countFor)?.blockedCount ?? 0);
+    cell.querySelector(".count-value").textContent = String(stats.get(cell.dataset.countFor)?.blockedCount ?? 0);
   }
 }
