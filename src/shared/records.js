@@ -10,6 +10,10 @@ const CODE_TO_SOURCE = Object.fromEntries(
   Object.entries(SOURCE_TO_CODE).map(([source, code]) => [code, source]),
 );
 
+// The valid JS Date range; anything beyond it would throw in toISOString().
+const MAX_TIME = 8.64e15;
+const validTime = (n) => Number.isFinite(n) && Math.abs(n) <= MAX_TIME;
+
 export function keyFor(domain) {
   return KEY_PREFIX + domain;
 }
@@ -34,8 +38,8 @@ export function fromStored(key, stored) {
   }
   if (stored.s !== "a" && stored.s !== "x") return null;
   if (!Object.hasOwn(CODE_TO_SOURCE, stored.o)) return null;
-  if (!Number.isFinite(stored.c) || !Number.isFinite(stored.u)) return null;
-  if ("x" in stored && !Number.isFinite(stored.x)) return null;
+  if (!validTime(stored.c) || !validTime(stored.u)) return null;
+  if ("x" in stored && !validTime(stored.x)) return null;
 
   const archived = stored.s === "x";
   if (archived && !("x" in stored)) return null;
