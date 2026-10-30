@@ -122,7 +122,7 @@ test("empty list shows the empty state and no table", () => {
   const root = document.getElementById("list");
   renderList(root, [rec("old.com", "archived")], new Map(), { onRemove() {} });
   assert.equal(root.querySelector("table"), null);
-  assert.match(root.textContent, /No blocked domains yet\./);
+  assert.match(root.textContent, /No blocked domains yet\. Paste one above, or right-click an outgoing link on Reddit/);
 });
 
 test("page shell: lang, title, one h1, main, label for input, live regions", () => {

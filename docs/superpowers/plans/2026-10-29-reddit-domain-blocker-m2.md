@@ -253,7 +253,7 @@ These are the conditions a user will run into that the spec doesn't spell out. E
   - In `index.js`, `runtime.onInstalled` calls `registerMenu`. `contextMenus.onClicked` is registered at the top level of `init`, so a sleeping worker still receives it. For `info.menuItemId === MENU_ID`, it enqueues `addDomain(areas.sync, info.linkUrl, "context-menu")` on the existing queue. If `menuNoticeFor` returns a notice and `tab?.id >= 0`, it calls `chromeApi.tabs.sendMessage(tab.id, { type: "notice", kind, text })` and swallows any rejection. The listener returns that promise for tests.
   - Fake chrome additions: `contextMenus.create(props)` pushes to `fake.contextMenus.items`. `contextMenus.removeAll()` clears the list. `contextMenus.onClicked.addListener(fn)`. `fake.contextMenus.click(info, tab)` returns `Promise.all` of the listener return values. `runtime.onInstalled.addListener(fn)` with `fake.runtime.install()`. `tabs.sendMessage(tabId, msg)` records into `fake.tabs.sent`, and `fake.tabs.failNextSend(err)` makes the next call reject.
   - Manifest `permissions: ["storage", "contextMenus"]`.
-  - `EMPTY_TEXT = "No blocked domains yet. Paste one above, or right-click a link on Reddit and choose Block this domain."`
+  - `EMPTY_TEXT = "No blocked domains yet. Paste one above, or right-click an outgoing link on Reddit and choose Block this domain."`
 
 - [ ] **Step 1: Write the failing tests.** In `test/manifest.test.js`, change the permissions assertion to `["storage", "contextMenus"]`. `test/menu.test.js`:
   ```js

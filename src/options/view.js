@@ -47,7 +47,7 @@ export function messageFor(result) {
 }
 
 export const EMPTY_TEXT =
-  "No blocked domains yet. Paste one above, or right-click a link on Reddit and choose Block this domain.";
+  "No blocked domains yet. Paste one above, or right-click an outgoing link on Reddit and choose Block this domain.";
 
 function el(doc, tag, className, text) {
   const node = doc.createElement(tag);
