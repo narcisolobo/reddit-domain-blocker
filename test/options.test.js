@@ -993,6 +993,20 @@ test("Import sends domain/import with the text and the chosen mode, then announc
   assert.equal((await chrome.storage.local.get("stats:a.com"))["stats:a.com"].blockedCount, 5);
 });
 
+test("picking a new file clears the previous result from the page messages", async () => {
+  const { document } = await setup();
+  pick(document, exportJson([entry("b.com")]));
+  await settle();
+  q(document, "Import").click();
+  await settle();
+  assert.equal(document.getElementById("status").textContent, "Imported: 1 new, 0 merged, 0 skipped.");
+  pick(document, exportJson([entry("c.com")]));
+  await settle();
+  assert.ok(review(document).querySelector("section"));
+  assert.equal(document.getElementById("status").textContent, "");
+  assert.equal(document.getElementById("action-error").textContent, "");
+});
+
 test("imported domains and counts appear without a reload", async () => {
   const { document } = await setup();
   pick(document, exportJson([entry("b.com", { blockedCount: 7 })]));

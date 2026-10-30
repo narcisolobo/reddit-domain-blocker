@@ -282,6 +282,9 @@ export async function init(env) {
     fileInput.value = "";
     const mine = ++pickToken;
     clearImportReview(reviewEl);
+    // A previous result left above a new review reads as that review's outcome.
+    statusEl.textContent = "";
+    actionErrorEl.textContent = "";
     if (file.size > MAX_IMPORT_BYTES) return show(messageFor({ ok: false, reason: "file-too-big" }));
     let text;
     try {
