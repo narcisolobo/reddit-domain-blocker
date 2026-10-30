@@ -98,6 +98,15 @@ export function createNotice(document, { defer = (fn) => setTimeout(fn, 0) } = {
   let alertRegion = null;
   let button = null;
   let token = 0;
+  let showing = false;
+  let returnTo = null;
+
+  // Escape works from anywhere on the page while the notice is showing: on a
+  // feed, infinite scroll keeps Tab from ever reaching Dismiss. The event is
+  // left alone so Reddit's own Escape handling still runs.
+  function onDocumentKeydown(e) {
+    if (e.key === "Escape" && !e.isComposing) dismiss();
+  }
 
   function build() {
     host = document.createElement("div");
@@ -132,23 +141,40 @@ export function createNotice(document, { defer = (fn) => setTimeout(fn, 0) } = {
 
     box.append(messages, button);
     root.append(style, box);
-    root.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") dismiss();
-    });
     (document.body || document.documentElement).append(host);
   }
 
   function dismiss() {
     token += 1;
     if (!host) return;
+    // Hiding the focused button would drop focus out of the page, so hand it
+    // back to whatever had it when the notice appeared.
+    const hadFocus = showing && host.shadowRoot.activeElement === button;
+    showing = false;
+    document.removeEventListener("keydown", onDocumentKeydown, true);
     box.classList.add("off");
     button.hidden = true;
     statusRegion.textContent = "";
     alertRegion.textContent = "";
+    const target = returnTo;
+    returnTo = null;
+    if (hadFocus && target?.isConnected) {
+      try {
+        target.focus();
+      } catch {
+        // Ignore.
+      }
+    }
   }
 
   function show({ kind, text }) {
     if (!host) build();
+    if (!showing) {
+      showing = true;
+      const active = document.activeElement;
+      returnTo = active && active !== document.body && active !== host ? active : null;
+      document.addEventListener("keydown", onDocumentKeydown, true);
+    }
     box.setAttribute("data-theme", detectTheme(document));
     const target = kind === "error" ? alertRegion : statusRegion;
     const other = kind === "error" ? statusRegion : alertRegion;

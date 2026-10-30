@@ -37,7 +37,7 @@ test("one host for any number of shows; the second show replaces the text", () =
   assert.equal(t.region("alert").textContent, "two");
 });
 
-test("Dismiss hides it; Escape inside hides it; Escape outside does nothing", () => {
+test("Dismiss hides it; Escape inside hides it", () => {
   const t = setup();
   const btn = () => t.dismissBtn();
   t.notice.show({ kind: "status", text: "x" }); t.run();
@@ -52,9 +52,88 @@ test("Dismiss hides it; Escape inside hides it; Escape outside does nothing", ()
   t.key(btn(), "Escape");
   assert.equal(t.visible(), false);
   t.notice.show({ kind: "status", text: "x" }); t.run();
+  t.notice.dismiss();
+  assert.equal(t.visible(), false);
+});
+
+test("Escape anywhere on the page dismisses while the notice is showing", () => {
+  const t = setup();
+  t.notice.show({ kind: "status", text: "x" }); t.run();
   t.key(t.document.getElementById("outside"), "Escape");
+  assert.equal(t.visible(), false);
+});
+
+test("Escape does nothing once the notice is dismissed, and other keys never dismiss", () => {
+  const t = setup();
+  t.notice.show({ kind: "status", text: "x" }); t.run();
+  t.key(t.document.getElementById("outside"), "Enter");
   assert.equal(t.visible(), true);
   t.notice.dismiss();
+  let seen = 0;
+  t.document.addEventListener("keydown", () => { seen += 1; });
+  t.key(t.document.getElementById("outside"), "Escape");
+  assert.equal(seen, 1);
+  assert.equal(t.visible(), false);
+});
+
+test("Escape during IME composition does not dismiss", () => {
+  const t = setup();
+  t.notice.show({ kind: "status", text: "x" }); t.run();
+  t.document.getElementById("outside").dispatchEvent(
+    new t.dom.window.KeyboardEvent("keydown", { key: "Escape", isComposing: true, bubbles: true }));
+  assert.equal(t.visible(), true);
+});
+
+test("the page still sees Escape: it is not stopped or cancelled", () => {
+  const t = setup();
+  t.notice.show({ kind: "status", text: "x" }); t.run();
+  let event = null;
+  t.document.body.addEventListener("keydown", (e) => { event = e; });
+  t.key(t.document.getElementById("outside"), "Escape");
+  assert.ok(event);
+  assert.equal(event.defaultPrevented, false);
+});
+
+test("dismissing with focus on Dismiss gives focus back to what had it when the notice showed", () => {
+  const t = setup();
+  const outside = t.document.getElementById("outside");
+  outside.focus();
+  t.notice.show({ kind: "status", text: "x" }); t.run();
+  t.dismissBtn().focus();
+  assert.equal(t.root().activeElement, t.dismissBtn());
+  t.key(t.dismissBtn(), "Escape");
+  assert.equal(t.document.activeElement, outside);
+});
+
+test("clicking Dismiss also returns focus", () => {
+  const t = setup();
+  const outside = t.document.getElementById("outside");
+  outside.focus();
+  t.notice.show({ kind: "status", text: "x" }); t.run();
+  t.dismissBtn().focus();
+  t.dismissBtn().click();
+  assert.equal(t.document.activeElement, outside);
+});
+
+test("dismissing moves no focus when focus is not on Dismiss", () => {
+  const t = setup();
+  const other = t.document.createElement("button");
+  t.document.body.append(other);
+  t.document.getElementById("outside").focus();
+  t.notice.show({ kind: "status", text: "x" }); t.run();
+  other.focus();
+  t.notice.dismiss();
+  assert.equal(t.document.activeElement, other);
+});
+
+test("if the earlier element is gone, dismissing does not throw", () => {
+  const t = setup();
+  const outside = t.document.getElementById("outside");
+  outside.focus();
+  t.notice.show({ kind: "status", text: "x" }); t.run();
+  t.dismissBtn().focus();
+  outside.remove();
+  assert.doesNotThrow(() => t.key(t.dismissBtn(), "Escape"));
   assert.equal(t.visible(), false);
 });
 
