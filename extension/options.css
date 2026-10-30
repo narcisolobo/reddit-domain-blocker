@@ -128,3 +128,6 @@ td.actions { text-align: right; }
   white-space: nowrap;
   border: 0;
 }
+
+.confirm-group { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.5rem; }
+.confirm-text { font-weight: 600; }

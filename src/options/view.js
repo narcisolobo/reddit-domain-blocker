@@ -83,6 +83,42 @@ function rowButton(doc, { action, domain, className, iconName, label, ariaLabel,
   return btn;
 }
 
+function confirmGroup(doc, domain, handlers) {
+  const group = el(doc, "span", "confirm-group");
+  group.setAttribute("role", "group");
+  group.setAttribute("aria-label", `Confirm deleting ${domain}`);
+  group.append(
+    el(doc, "span", "confirm-text", "Really delete?"),
+    rowButton(doc, {
+      action: "confirm",
+      domain,
+      className: "btn btn-remove",
+      iconName: "trash",
+      label: "Confirm",
+      ariaLabel: `Confirm delete of ${domain}`,
+      title: `Delete ${domain} permanently`,
+      onClick: handlers.onConfirm,
+    }),
+    rowButton(doc, {
+      action: "cancel",
+      domain,
+      className: "btn btn-restore",
+      iconName: "x",
+      label: "Cancel",
+      ariaLabel: `Cancel delete of ${domain}`,
+      title: `Keep ${domain}`,
+      onClick: handlers.onCancel,
+    }),
+  );
+  group.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      handlers.onCancel(domain);
+    }
+  });
+  return group;
+}
+
 function buildTable(doc, captionText, headers) {
   const table = el(doc, "table", "domains");
   table.append(el(doc, "caption", "", captionText));
@@ -144,8 +180,8 @@ function formatDate(doc, ms) {
   return td;
 }
 
-// onConfirm / onCancel and `confirming` belong to the two-step Delete (next task).
-export function renderArchived(root, records, stats, handlers, _confirming = null) {
+// `confirming` is the domain whose Delete is awaiting confirmation, or null.
+export function renderArchived(root, records, stats, handlers, confirming = null) {
   const doc = root.ownerDocument;
   const archived = records.filter((r) => r.status === "archived").sort(byDomain);
 
@@ -175,16 +211,18 @@ export function renderArchived(root, records, stats, handlers, _confirming = nul
         title: `Block ${rec.domain} again`,
         onClick: handlers.onRestore,
       }),
-      rowButton(doc, {
-        action: "delete",
-        domain: rec.domain,
-        className: "btn btn-remove",
-        iconName: "trash",
-        label: "Delete permanently",
-        ariaLabel: `Delete permanently: ${rec.domain}`,
-        title: `Delete ${rec.domain} and its history`,
-        onClick: handlers.onDelete,
-      }),
+      rec.domain === confirming
+        ? confirmGroup(doc, rec.domain, handlers)
+        : rowButton(doc, {
+            action: "delete",
+            domain: rec.domain,
+            className: "btn btn-remove",
+            iconName: "trash",
+            label: "Delete permanently",
+            ariaLabel: `Delete permanently: ${rec.domain}`,
+            title: `Delete ${rec.domain} and its history`,
+            onClick: handlers.onDelete,
+          }),
     );
     tr.append(el(doc, "td", "domain", rec.domain), formatDate(doc, rec.archivedAt), countCell(doc, rec.domain, stats), tdAction);
     tbody.append(tr);

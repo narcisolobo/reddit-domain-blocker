@@ -482,3 +482,166 @@ test("a malformed stats value shows 0 and does not throw", async () => {
   await settle();
   for (const d of ["a.com", "b.com", "c.com"]) assert.equal(countOf(document, d), "0");
 });
+
+// ---- Two-step Delete permanently ----
+const q = (document, label) => document.querySelector(`button[aria-label="${label}"]`);
+const recordKeys = async (chrome) => Object.keys(await chrome.storage.sync.get(null)).sort();
+
+function spySend(chrome) {
+  const sent = [];
+  const original = chrome.runtime.sendMessage.bind(chrome.runtime);
+  chrome.runtime.sendMessage = (m) => (sent.push(m), original(m));
+  return sent;
+}
+
+test("first Delete click shows the confirm group, writes nothing, focuses Confirm", async () => {
+  const { chrome, document } = await setup({ "d:old.com": stored("archived") });
+  const sent = spySend(chrome);
+  const before = await chrome.storage.sync.get(null);
+  q(document, "Delete permanently: old.com").click();
+  await settle();
+  assert.deepEqual(sent, []);
+  assert.deepEqual(await chrome.storage.sync.get(null), before);
+  assert.equal(q(document, "Delete permanently: old.com"), null);
+  const group = document.querySelector('[role="group"][aria-label="Confirm deleting old.com"]');
+  assert.ok(group);
+  assert.match(group.textContent, /Really delete\?/);
+  const confirm = q(document, "Confirm delete of old.com");
+  assert.equal(confirm.title, "Delete old.com permanently");
+  assert.equal(confirm.className.includes("btn-remove"), true);
+  assert.match(confirm.textContent, /Confirm/);
+  const cancel = q(document, "Cancel delete of old.com");
+  assert.equal(cancel.title, "Keep old.com");
+  assert.match(cancel.textContent, /Cancel/);
+  assert.equal(document.activeElement, confirm);
+  assert.ok(q(document, "Restore old.com"));
+});
+
+test("Confirm deletes: record and stats gone, 'Deleted x permanently' in role=status", async () => {
+  const { chrome, document } = await setup({ "d:old.com": stored("archived") });
+  await chrome.storage.local.set({ "stats:old.com": stat(4) });
+  await settle();
+  const sent = spySend(chrome);
+  q(document, "Delete permanently: old.com").click();
+  await settle();
+  q(document, "Confirm delete of old.com").click();
+  await settle();
+  assert.deepEqual(sent, [{ type: "domain/delete", domain: "old.com" }]);
+  assert.deepEqual(await recordKeys(chrome), []);
+  assert.equal("stats:old.com" in (await chrome.storage.local.get(null)), false);
+  assert.equal(document.querySelector('[role="status"]').textContent, "Deleted old.com permanently");
+  assert.equal(document.querySelector("#archived-list table"), null);
+});
+
+test("Cancel and Escape restore the Delete button and focus it; nothing written", async () => {
+  const { chrome, document } = await setup({ "d:old.com": stored("archived") });
+  const sent = spySend(chrome);
+  const before = await chrome.storage.sync.get(null);
+  q(document, "Delete permanently: old.com").click();
+  await settle();
+  q(document, "Cancel delete of old.com").click();
+  await settle();
+  assert.equal(document.activeElement, q(document, "Delete permanently: old.com"));
+  assert.equal(document.querySelector('[role="group"]'), null);
+
+  q(document, "Delete permanently: old.com").click();
+  await settle();
+  const Ev = document.defaultView.KeyboardEvent;
+  q(document, "Confirm delete of old.com").dispatchEvent(new Ev("keydown", { key: "Escape", bubbles: true }));
+  await settle();
+  assert.equal(document.activeElement, q(document, "Delete permanently: old.com"));
+
+  q(document, "Delete permanently: old.com").click();
+  await settle();
+  q(document, "Cancel delete of old.com").dispatchEvent(new Ev("keydown", { key: "Escape", bubbles: true }));
+  await settle();
+  assert.equal(document.activeElement, q(document, "Delete permanently: old.com"));
+  assert.deepEqual(sent, []);
+  assert.deepEqual(await chrome.storage.sync.get(null), before);
+});
+
+test("after a confirmed delete focus goes to the next row's Restore, else previous, else the Archived heading", async () => {
+  const { document } = await setup({
+    "d:a.com": stored("archived"),
+    "d:b.com": stored("archived"),
+    "d:c.com": stored("archived"),
+  });
+  const del = async (d) => {
+    q(document, `Delete permanently: ${d}`).click();
+    await settle();
+    q(document, `Confirm delete of ${d}`).click();
+    await settle();
+  };
+  await del("a.com");
+  assert.equal(document.activeElement.getAttribute("aria-label"), "Restore b.com");
+  await del("c.com");
+  assert.equal(document.activeElement.getAttribute("aria-label"), "Restore b.com");
+  await del("b.com");
+  assert.equal(document.activeElement, document.getElementById("archived-heading"));
+});
+
+test("only one row confirms at a time: Delete on row B closes row A's confirm", async () => {
+  const { document } = await setup({ "d:a.com": stored("archived"), "d:b.com": stored("archived") });
+  q(document, "Delete permanently: a.com").click();
+  await settle();
+  q(document, "Delete permanently: b.com").click();
+  await settle();
+  assert.equal(document.querySelectorAll('[role="group"]').length, 1);
+  assert.ok(q(document, "Delete permanently: a.com"));
+  assert.equal(document.activeElement, q(document, "Confirm delete of b.com"));
+});
+
+test("an open confirmation survives a stats update and an unrelated sync change", async () => {
+  const { chrome, document } = await setup({ "d:a.com": stored(), "d:old.com": stored("archived") });
+  q(document, "Delete permanently: old.com").click();
+  await settle();
+  const confirm = q(document, "Confirm delete of old.com");
+  await chrome.storage.local.set({ "stats:old.com": stat(7) });
+  await settle();
+  assert.equal(q(document, "Confirm delete of old.com"), confirm);
+  assert.equal(document.activeElement, confirm);
+  assert.equal(countOf(document, "old.com"), "7");
+  await chrome.storage.sync.set({ "d:other.com": stored() });
+  await settle();
+  assert.ok(document.querySelector('[role="group"][aria-label="Confirm deleting old.com"]'));
+  assert.equal(document.activeElement, q(document, "Confirm delete of old.com"));
+});
+
+test("a confirming domain restored elsewhere closes the confirmation without throwing", async () => {
+  const { chrome, document } = await setup({ "d:old.com": stored("archived") });
+  q(document, "Delete permanently: old.com").click();
+  await settle();
+  await chrome.storage.sync.set({ "d:old.com": stored() });
+  await settle();
+  assert.equal(document.querySelector('[role="group"]'), null);
+  assert.ok(document.querySelector("#list td.domain"));
+  // Archiving it again must show a plain Delete button, not a stale confirmation.
+  await chrome.storage.sync.set({ "d:old.com": stored("archived") });
+  await settle();
+  assert.ok(q(document, "Delete permanently: old.com"));
+  assert.equal(document.querySelector('[role="group"]'), null);
+});
+
+test("a failed delete shows role=alert and returns focus to Delete", async () => {
+  const { chrome, document } = await setup({ "d:old.com": stored("archived") });
+  q(document, "Delete permanently: old.com").click();
+  await settle();
+  chrome.runtime.sendMessage = async () => ({ ok: false, domain: "old.com", reason: "error" });
+  q(document, "Confirm delete of old.com").click();
+  await settle();
+  assert.ok(document.querySelector('[role="alert"]').textContent.length > 0);
+  assert.equal(document.querySelector('[role="group"]'), null);
+  assert.equal(document.activeElement, q(document, "Delete permanently: old.com"));
+});
+
+test("no window.confirm is called", async () => {
+  const { dom, document } = await setup({ "d:old.com": stored("archived") });
+  dom.window.confirm = () => {
+    throw new Error("window.confirm used");
+  };
+  q(document, "Delete permanently: old.com").click();
+  await settle();
+  q(document, "Confirm delete of old.com").click();
+  await settle();
+  assert.equal(document.querySelector('[role="status"]').textContent, "Deleted old.com permanently");
+});

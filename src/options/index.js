@@ -48,6 +48,9 @@ export async function init(env) {
   let latest = Promise.resolve();
   let lastRows = { remove: [], restore: [], delete: [] };
   let pendingFocus = null;
+  let confirming = null;
+  let lastRecords = [];
+  let lastStats = new Map();
 
   const FALLBACK = {
     remove: () => input,
@@ -83,6 +86,11 @@ export async function init(env) {
   // touched.
   function render(records, nextStats) {
     const before = lastRows;
+    lastRecords = records;
+    lastStats = nextStats;
+    if (confirming !== null && !records.some((r) => r.domain === confirming && r.status === "archived")) {
+      confirming = null;
+    }
     // A pending action only decides focus until a render has dropped that
     // row; later renders (e.g. the second of onChanged + awaited refresh)
     // keep whatever already has focus.
@@ -91,7 +99,7 @@ export async function init(env) {
         ? pendingFocus
         : focusedPair();
     renderList(listEl, records, nextStats, { onRemove });
-    renderArchived(archivedEl, records, nextStats, { onRestore, onDelete, onConfirm: () => {}, onCancel: () => {} }, null);
+    renderArchived(archivedEl, records, nextStats, { onRestore, onDelete, onConfirm, onCancel }, confirming);
     lastRows = currentRows();
     if (key === null) return;
     const buttons = buttonsFor(key.action);
@@ -155,8 +163,42 @@ export async function init(env) {
 
   const onRemove = (domain) => act(domain, "remove", "domain/archive");
   const onRestore = (domain) => act(domain, "restore", "domain/restore");
-  // Two-step Delete arrives in the next task.
-  const onDelete = () => {};
+
+  function focusDelete(domain) {
+    buttonsFor("delete").find((b) => b.dataset.domain === domain)?.focus();
+  }
+
+  function onDelete(domain) {
+    confirming = domain;
+    render(lastRecords, lastStats);
+    buttonsFor("confirm").find((b) => b.dataset.domain === domain)?.focus();
+  }
+
+  function onCancel(domain) {
+    confirming = null;
+    render(lastRecords, lastStats);
+    focusDelete(domain);
+  }
+
+  async function onConfirm(domain) {
+    // On success the row disappears and focus moves via the Restore chain.
+    pendingFocus = { domain, action: "restore" };
+    try {
+      const result = await send({ type: "domain/delete", domain });
+      const message = messageFor(result);
+      confirming = null;
+      show(message);
+      if (message.kind !== "status") {
+        render(lastRecords, lastStats);
+        focusDelete(domain);
+        return;
+      }
+      await refresh();
+      await latest;
+    } finally {
+      pendingFocus = null;
+    }
+  }
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
