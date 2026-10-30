@@ -86,6 +86,7 @@ export function createFakeChrome() {
     },
     runtime: {
       id: "fake-extension-id",
+      getManifest: () => ({ version: "0.1.0" }),
       async sendMessage(msg) {
         if (invalidated) throw new Error("Extension context invalidated.");
         if (!messageHandler) return undefined;

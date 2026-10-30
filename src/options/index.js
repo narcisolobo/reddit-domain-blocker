@@ -1,6 +1,7 @@
 import { icon } from "../shared/icons.js";
 import { recordsFromItems } from "../shared/records.js";
 import { statsFromItems, STATS_PREFIX } from "../shared/stats.js";
+import { buildExport, exportFilename } from "../shared/transfer.js";
 import { messageFor, renderArchived, renderList, updateCounts } from "./view.js";
 
 export async function init(env) {
@@ -17,6 +18,14 @@ export async function init(env) {
 
   addButton.innerHTML = `${icon("plus")}<span>Add</span>`;
   errorEl.id = "error";
+  const exportButton = document.getElementById("export-button");
+  const importButton = document.getElementById("import-button");
+  exportButton.setAttribute("aria-label", "Export list");
+  exportButton.title = "Download your list as a JSON file";
+  exportButton.innerHTML = `${icon("download")}<span>Export list</span>`;
+  importButton.setAttribute("aria-label", "Import list…");
+  importButton.title = "Load a list from an exported JSON file";
+  importButton.innerHTML = `${icon("upload")}<span>Import list…</span>`;
 
   // One message shows at a time. The Add form's errors (`field`) sit under the
   // input and mark it invalid; everything else goes in the region under the title.
@@ -227,6 +236,29 @@ export async function init(env) {
     if (message.kind === "status") {
       input.value = "";
       input.focus();
+    }
+  });
+
+  exportButton.addEventListener("click", async () => {
+    try {
+      // Read fresh rather than trusting the last render.
+      const [syncItems, localItems] = await Promise.all([chrome.storage.sync.get(null), chrome.storage.local.get(null)]);
+      const data = buildExport(recordsFromItems(syncItems), statsFromItems(localItems), {
+        now: Date.now(),
+        version: chrome.runtime.getManifest().version,
+      });
+      const { URL, Blob } = document.defaultView;
+      const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = exportFilename(Date.parse(data.exportedAt));
+      document.body.append(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      show(messageFor({ ok: true, outcome: "exported", count: data.domains.length }));
+    } catch {
+      show(messageFor(undefined));
     }
   });
 

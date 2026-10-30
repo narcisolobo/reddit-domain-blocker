@@ -25,6 +25,8 @@ export function messageFor(result) {
         return { kind: "status", text: `${domain} is already on the list` };
       case "deleted":
         return { kind: "status", text: `Deleted ${domain} permanently` };
+      case "exported":
+        return { kind: "status", text: `Exported ${result.count} ${result.count === 1 ? "domain" : "domains"}` };
       case "archived":
       case "already-archived":
         return { kind: "status", text: `Removed ${domain}` };

@@ -834,3 +834,83 @@ test("a stored record with an out-of-range timestamp does not break the Archived
   assert.ok(q(document, "Restore old.com"));
   assert.equal(q(document, "Restore bad.com"), null);
 });
+
+test("Export list and Import list… buttons are grey outlined with icons, labels and tooltips", async () => {
+  const { document } = await setup();
+  const exp = document.getElementById("export-button");
+  const imp = document.getElementById("import-button");
+  for (const b of [exp, imp]) {
+    assert.equal(b.type, "button");
+    assert.ok(b.classList.contains("btn") && b.classList.contains("btn-restore"));
+    assert.ok(b.querySelector("svg[aria-hidden='true']"));
+  }
+  assert.equal(exp.getAttribute("aria-label"), "Export list");
+  assert.equal(exp.title, "Download your list as a JSON file");
+  assert.equal(exp.textContent.trim(), "Export list");
+  assert.equal(imp.getAttribute("aria-label"), "Import list…");
+  assert.equal(imp.title, "Load a list from an exported JSON file");
+  assert.equal(imp.textContent.trim(), "Import list…");
+  const file = document.getElementById("import-file");
+  assert.equal(file.type, "file");
+  assert.ok(file.hidden);
+});
+
+test("Export downloads every record as JSON and announces it", async () => {
+  const { chrome, dom, document } = await setup({ "d:a.com": stored(), "d:b.com": stored("archived") });
+  await chrome.storage.local.set({ "stats:a.com": { blockedCount: 3, lastBlockedAt: 5 } });
+  const win = dom.window;
+  let blob = null;
+  const revoked = [];
+  win.URL.createObjectURL = (b) => {
+    blob = b;
+    return "blob:fake-1";
+  };
+  win.URL.revokeObjectURL = (u) => revoked.push(u);
+  const anchors = [];
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest?.("a[download]");
+    if (a) {
+      anchors.push(a);
+      e.preventDefault();
+    }
+  });
+  const button = document.getElementById("export-button");
+  button.focus();
+  button.click();
+  await settle();
+  assert.equal(anchors.length, 1);
+  assert.match(anchors[0].download, /^reddit-domain-blocker-\d{4}-\d{2}-\d{2}\.json$/);
+  assert.equal(blob.type, "application/json");
+  const data = JSON.parse(
+    await new Promise((resolve, reject) => {
+      const reader = new win.FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsText(blob);
+    }),
+  );
+  assert.equal(data.extensionVersion, "0.1.0");
+  assert.deepEqual(data.domains.map((d) => d.domain), ["a.com", "b.com"]);
+  assert.equal(data.domains[0].blockedCount, 3);
+  assert.equal(document.getElementById("status").textContent, "Exported 2 domains");
+  assert.deepEqual(revoked, ["blob:fake-1"]);
+  assert.equal(document.activeElement, button);
+  assert.equal(document.querySelector("a[download]"), null);
+});
+
+test("Export shows the generic error when storage cannot be read", async () => {
+  const { chrome, document } = await setup();
+  chrome.storage.sync.get = async () => {
+    throw new Error("boom");
+  };
+  document.getElementById("export-button").click();
+  await settle();
+  assert.equal(document.getElementById("action-error").textContent, "Something went wrong. Please try again.");
+  assert.equal(document.getElementById("status").textContent, "");
+});
+
+test("messageFor exported pluralizes", () => {
+  assert.deepEqual(messageFor({ ok: true, outcome: "exported", count: 1 }), { kind: "status", text: "Exported 1 domain" });
+  assert.deepEqual(messageFor({ ok: true, outcome: "exported", count: 3 }), { kind: "status", text: "Exported 3 domains" });
+  assert.deepEqual(messageFor({ ok: true, outcome: "exported", count: 0 }), { kind: "status", text: "Exported 0 domains" });
+});

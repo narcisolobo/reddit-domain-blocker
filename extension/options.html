@@ -21,6 +21,11 @@
       </div>
     </form>
     <div id="error" role="alert" class="message message-error"></div>
+    <div class="transfer">
+      <button type="button" class="btn btn-restore" id="export-button"></button>
+      <button type="button" class="btn btn-restore" id="import-button"></button>
+      <input type="file" id="import-file" accept=".json,application/json" hidden>
+    </div>
     <section aria-labelledby="active-heading">
       <h2 id="active-heading">Blocked domains</h2>
       <div id="list"></div>
