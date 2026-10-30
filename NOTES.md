@@ -108,8 +108,8 @@ Run by the owner in their own Chrome with `extension/` loaded unpacked, on new a
 - Fixed: Dismiss on the notice was unreachable by Tab on a feed, and focus was lost after dismissing. Escape now dismisses from anywhere while the notice shows, and focus goes back to the element that had it. Needs a re-check in Chrome (jsdom tests only so far).
 - Fixed: a refused right-click on a new Reddit ad now says "This looks like an ad. Ads can't be blocked by domain." It matches the link host `alb.reddit.com`, taken from an ad the owner inspected. Not verified on old Reddit: no ad could be found on the old Reddit home page or r/all (searched for "promoted"), so old Reddit ads keep the generic text unless they use the same host.
 - Fixed: the empty-state copy now says "outgoing link".
-- Open: the delete confirmation crowds its row; alternatives to be looked at.
-- Open: status messages ("Deleted", "Restored", "Removed") show under the add field, away from where the user acted. Proposal: move one status region below the page title.
+- Fixed: the delete confirmation crowded its row. "Really delete?", Confirm and Cancel now sit on their own line under Restore, with smaller buttons, and table columns have a gap between them. Checked by the owner in Chrome.
+- Fixed: status messages ("Deleted", "Restored", "Removed") showed under the add field, away from where the user acted. They now show in a sticky region under the page title, along with errors from row actions. Errors from the add field stay under the input. Checked by the owner in Chrome.
 - The duplicate "Blocked domains" and "Archived" headings stay deferred to M4.
 
 ### Posts hidden counts the same post more than once, on purpose
