@@ -321,7 +321,7 @@ The automation browser can't open reddit.com or `chrome://extensions` (see `NOTE
 **Files:**
 - Modify: `NOTES.md` (add `## M2 verification`), `README.md` (status line)
 
-- [ ] **Step 1: Build and hand off.** Run `npm test && npm run build` and expect all tests to pass and the build to exit 0. Ask the owner to reload the unpacked extension and then run each check below on new and old Reddit, reporting pass or fail:
+- [x] **Step 1: Build and hand off.** Run `npm test && npm run build` and expect all tests to pass and the build to exit 0. Ask the owner to reload the unpacked extension and then run each check below on new and old Reddit, reporting pass or fail:
   1. Right-click an outbound post link and choose **Block this domain**. Matching posts hide in every open Reddit tab, and the options page (open in another tab) lists the domain without a reload.
   2. Right-click a post's comments link or a username. A notice explains the refusal, and nothing is added.
   3. Paste `https://www.example.com:8080/a/b?c=d#e` on the options page. It saves `example.com`. Adding `reddit.com` is refused with an explanation (acceptance 8).
@@ -330,6 +330,6 @@ The automation browser can't open reddit.com or `chrome://extensions` (see `NOTE
   6. **Delete permanently** shows "Really delete?". Only Confirm deletes, and Cancel and Escape back out (acceptance 6). After the delete, re-adding the domain starts its count at 0.
   7. Keyboard only: Restore, Delete → Confirm, Delete → Escape, and Dismiss on the notice all work, and focus lands where Global Constraints says.
   8. Console: nothing from `content.js`, and the service worker's console (from `chrome://extensions`) shows no errors.
-- [ ] **Step 2: Record** the results in `NOTES.md` under `## M2 verification`, using the same table form as M1. Fix any failure before moving on, with a new task-sized commit for each.
-- [ ] **Step 3: Update** `README.md` to say M2 is implemented and checked by hand, with import/export and polish still to come (M3 onward).
-- [ ] **Step 4: Commit** `docs: record M2 verification`.
+- [x] **Step 2: Record** the results in `NOTES.md` under `## M2 verification`, using the same table form as M1. Fix any failure before moving on, with a new task-sized commit for each.
+- [x] **Step 3: Update** `README.md` to say M2 is implemented and checked by hand, with import/export and polish still to come (M3 onward).
+- [x] **Step 4: Commit** `docs: record M2 verification`.
