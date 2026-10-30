@@ -1,6 +1,9 @@
 import { hostnameOf, isProtected } from "../shared/domain.js";
 
 const POST_PATH = /\/comments\/[a-z0-9]+(\/|$)/i;
+// Site-wide and in-subreddit search. Search results are never blocked: someone
+// searching for a topic should see every result.
+const SEARCH_PATH = /^\/(r\/[^/]+\/)?search\/?$/i;
 
 function outboundHref(value) {
   if (!value) return null;
@@ -17,6 +20,16 @@ function isPostPage(url) {
     return false;
   }
   return POST_PATH.test(path);
+}
+
+function isSearchPage(url) {
+  let path;
+  try {
+    path = new URL(url).pathname;
+  } catch {
+    return false;
+  }
+  return SEARCH_PATH.test(path);
 }
 
 function matcher(selector) {
@@ -37,6 +50,7 @@ const newAdapter = {
   }),
   hideTarget: (el) => [el],
   isPostPage,
+  isSearchPage,
 };
 
 const oldAdapter = {
@@ -53,6 +67,7 @@ const oldAdapter = {
     return spacer && spacer.classList.contains("clearleft") ? [el, spacer] : [el];
   },
   isPostPage,
+  isSearchPage,
 };
 
 export function pickAdapter(hostname) {

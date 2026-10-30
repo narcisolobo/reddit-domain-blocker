@@ -46,7 +46,7 @@ Seen on `https://old.reddit.com/r/news/` (25 posts, all links):
 - The new-Reddit post page shows more feed items below the post (an ad was visible); the spec already says nothing is hidden on a post's own page, including related-post lists.
 - Profile posts page, new Reddit: `https://www.reddit.com/user/<name>/submitted/` (verified by the owner).
 - A post page's own `shreddit-post` carries `view-context="CommentsPage"` (listings use `SubredditFeed` or `AggregateFeed`). This is a second signal for "this is a post's own page"; the URL rule stays primary.
-- Search URL: assumed `/search/?q=...`. Search results are deliberately not blocked (owner decision during Task 14), so no markup was captured.
+- Search URL: assumed `/search/?q=...`. Search results are deliberately not blocked (owner decision during Task 14), so no markup was captured. The adapters' `isSearchPage` (`/search` and `/r/<sub>/search`) makes the blocker treat search like a post page: nothing is hidden or restored while on it, and leaving rescans.
 
 ## Navigation
 

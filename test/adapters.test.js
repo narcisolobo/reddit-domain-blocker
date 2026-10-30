@@ -148,3 +148,15 @@ test("isPost recognizes the post element itself, not its wrapper or other nodes"
     assert.equal(adapter.isPost(null), false);
   }
 });
+
+test("isSearchPage", () => {
+  for (const adapter of [newAdapter, oldAdapter]) {
+    for (const path of ["/search/?q=newsweek", "/search?q=x", "/r/news/search/?q=x&restrict_sr=1", "/r/news/search?q=x", "/search/"]) {
+      assert.equal(adapter.isSearchPage("https://www.reddit.com" + path), true, path);
+    }
+    for (const path of ["/", "/r/news/", "/r/search/", "/r/searchengines/", "/user/search/submitted/", "/r/news/comments/abc123/search/", "/r/news/?q=search"]) {
+      assert.equal(adapter.isSearchPage("https://www.reddit.com" + path), false, path);
+    }
+    assert.equal(adapter.isSearchPage("not a url"), false);
+  }
+});

@@ -328,6 +328,33 @@ test("post page: nothing hidden or restored; leaving rescans and hides", async (
   t.blocker.stop();
 });
 
+test("search page: nothing hidden, new posts left alone, stubs left alone, leaving rescans", async () => {
+  const SEARCH = "https://www.reddit.com/search/?q=example";
+  const t = setup({ url: SEARCH, posts: [{ id: "t3_a", href: "https://example.com/a" }] });
+  t.blocker.start();
+  assert.ok(!isHidden(t.post("t3_a")));
+  t.feed.append(t.makeArticle("t3_b", "https://example.com/b"));
+  await flush();
+  assert.ok(!isHidden(t.post("t3_b")));
+  assert.equal(t.document.querySelectorAll("[data-rdb-stub]").length, 0);
+
+  t.setUrl(LISTING);
+  t.blocker.handleUrlChange();
+  assert.ok(isHidden(t.post("t3_a")));
+  assert.ok(isHidden(t.post("t3_b")));
+
+  // Entering search leaves stubs already on screen alone.
+  t.setUrl(SEARCH);
+  t.blocker.handleUrlChange();
+  t.blocker.setActiveDomains([]);
+  assert.ok(isHidden(t.post("t3_a")));
+
+  t.setUrl(LISTING);
+  t.blocker.handleUrlChange();
+  assert.ok(!isHidden(t.post("t3_a")));
+  t.blocker.stop();
+});
+
 test("focus: hidden post hands focus to Show post; Show post -> Hide post; Hide post -> Show post", () => {
   const t = setup({ domains: [], posts: [{ id: "t3_a", href: "https://example.com/a" }] });
   t.blocker.start();

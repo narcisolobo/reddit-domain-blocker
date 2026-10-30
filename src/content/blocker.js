@@ -17,15 +17,16 @@ export function createBlocker({ document, adapter, getUrl, requestUnblock }) {
   const revealedIds = new Map(); // post id -> true, for this page load
   const revealedNodes = new WeakSet(); // posts that carry no id
   let started = false;
-  let wasPostPage = false;
+  let wasExcludedPage = false;
   let theme = "light";
   let style = null;
   let observer = null;
   let unwatchTheme = null;
 
-  function onPostPage() {
+  function onExcludedPage() {
     try {
-      return adapter.isPostPage(getUrl());
+      const url = getUrl();
+      return adapter.isPostPage(url) || adapter.isSearchPage(url);
     } catch {
       return false;
     }
@@ -168,7 +169,7 @@ export function createBlocker({ document, adapter, getUrl, requestUnblock }) {
   }
 
   function onMutations(mutations) {
-    const postPage = onPostPage();
+    const postPage = onExcludedPage();
     const changed = new Set();
     for (const m of mutations) {
       if (m.type === "attributes") {
@@ -183,7 +184,7 @@ export function createBlocker({ document, adapter, getUrl, requestUnblock }) {
   }
 
   function scanAll() {
-    if (!started || onPostPage()) return;
+    if (!started || onExcludedPage()) return;
     for (const post of adapter.findPosts(document)) evaluate(post);
   }
 
@@ -204,7 +205,7 @@ export function createBlocker({ document, adapter, getUrl, requestUnblock }) {
       (document.head || document.documentElement).append(style);
       theme = detectTheme(document);
       unwatchTheme = watchTheme(document, onTheme);
-      wasPostPage = onPostPage();
+      wasExcludedPage = onExcludedPage();
       scanAll();
       observer = new document.defaultView.MutationObserver(onMutations);
       observer.observe(document.documentElement, {
@@ -229,9 +230,9 @@ export function createBlocker({ document, adapter, getUrl, requestUnblock }) {
       scanAll();
     },
     handleUrlChange() {
-      const now = onPostPage();
-      const left = wasPostPage && !now;
-      wasPostPage = now;
+      const now = onExcludedPage();
+      const left = wasExcludedPage && !now;
+      wasExcludedPage = now;
       if (left) scanAll();
     },
   };
