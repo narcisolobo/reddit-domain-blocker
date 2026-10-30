@@ -10,6 +10,13 @@ const ERROR_TEXT = {
   error: "Something went wrong. Please try again.",
 };
 
+const IMPORT_TEXT = {
+  unreadable: "That file isn't a Reddit Domain Blocker export. Nothing was imported.",
+  "unsupported-version": "That export is from a different version of Reddit Domain Blocker. Nothing was imported.",
+  "nothing-to-import": "Nothing to import: every entry in that file was skipped.",
+  "file-too-big": "That file is too large to be an export. Nothing was imported.",
+};
+
 const GENERIC = { kind: "error", text: ERROR_TEXT.error };
 
 export function messageFor(result) {
@@ -27,6 +34,8 @@ export function messageFor(result) {
         return { kind: "status", text: `Deleted ${domain} permanently` };
       case "exported":
         return { kind: "status", text: `Exported ${result.count} ${result.count === 1 ? "domain" : "domains"}` };
+      case "imported":
+        return { kind: "status", text: `Imported: ${result.added} new, ${result.merged} merged, ${result.skipped} skipped.` };
       case "archived":
       case "already-archived":
         return { kind: "status", text: `Removed ${domain}` };
@@ -40,6 +49,14 @@ export function messageFor(result) {
     }
     if (result.reason === "not-archived") {
       return { kind: "error", text: `${domain || "That domain"} is blocked again, so it wasn't deleted.` };
+    }
+    if (Object.hasOwn(IMPORT_TEXT, result.reason)) return { kind: "error", text: IMPORT_TEXT[result.reason] };
+    if (result.reason === "too-many") {
+      return { kind: "error", text: `That import would go over Chrome's limit of 512 domains by ${result.over}. Nothing was imported.` };
+    }
+    if (result.reason === "too-large") {
+      const kb = Math.ceil(result.over / 1024);
+      return { kind: "error", text: `That import would go over Chrome's sync storage limit by about ${kb} KB. Nothing was imported.` };
     }
     if (typeof result.reason === "string" && Object.hasOwn(ERROR_TEXT, result.reason)) {
       return { kind: "error", text: ERROR_TEXT[result.reason] };

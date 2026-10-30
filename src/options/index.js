@@ -1,7 +1,8 @@
 import { icon } from "../shared/icons.js";
 import { recordsFromItems } from "../shared/records.js";
 import { statsFromItems, STATS_PREFIX } from "../shared/stats.js";
-import { buildExport, exportFilename } from "../shared/transfer.js";
+import { buildExport, exportFilename, parseImport, planImport } from "../shared/transfer.js";
+import { clearImportReview, MAX_IMPORT_BYTES, renderImportReview } from "./import-view.js";
 import { messageFor, renderArchived, renderList, updateCounts } from "./view.js";
 
 export async function init(env) {
@@ -260,6 +261,43 @@ export async function init(env) {
     } catch {
       show(messageFor(undefined));
     }
+  });
+
+  const fileInput = document.getElementById("import-file");
+  const reviewEl = document.getElementById("import-review");
+
+  function closeReview() {
+    clearImportReview(reviewEl);
+    importButton.focus();
+  }
+
+  importButton.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", async () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    fileInput.value = "";
+    clearImportReview(reviewEl);
+    if (file.size > MAX_IMPORT_BYTES) return show(messageFor({ ok: false, reason: "file-too-big" }));
+    let text;
+    try {
+      text = await file.text();
+    } catch {
+      return show(messageFor({ ok: false, reason: "unreadable" }));
+    }
+    const parsed = parseImport(text);
+    const refusal = !parsed.ok ? parsed.reason : parsed.entries.length === 0 ? "nothing-to-import" : null;
+    if (refusal) return show(messageFor({ ok: false, reason: refusal }));
+    const plan = planImport(lastRecords, lastStats, parsed.entries, "larger");
+    renderImportReview(reviewEl, { added: plan.added, merged: plan.merged, skipped: parsed.skipped }, {
+      onCancel: closeReview,
+      onImport: async (countMode) => {
+        const result = await send({ type: "domain/import", text, countMode });
+        clearImportReview(reviewEl);
+        show(messageFor(result));
+        importButton.focus();
+      },
+    });
+    document.getElementById("import-heading").focus();
   });
 
   input.addEventListener("input", () => {
