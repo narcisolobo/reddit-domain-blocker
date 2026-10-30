@@ -115,7 +115,7 @@ test("Remove button has text, aria-label, title, hidden svg, and calls onRemove"
   const btn = root.querySelector("button");
   assert.equal(btn.textContent.trim(), "Remove");
   assert.equal(btn.getAttribute("aria-label"), "Remove example.com");
-  assert.equal(btn.getAttribute("title"), "Archive example.com");
+  assert.equal(btn.getAttribute("title"), "Remove example.com");
   assert.equal(btn.querySelector("svg").getAttribute("aria-hidden"), "true");
   btn.click();
   assert.deepEqual(removed, ["example.com"]);
@@ -390,7 +390,7 @@ test("archived table: heading name, th scope=col, time datetime, counts, Restore
   assert.equal(btn.dataset.domain, "old.com");
   assert.equal(btn.textContent.trim(), "Restore");
   assert.equal(btn.getAttribute("aria-label"), "Restore old.com");
-  assert.equal(btn.getAttribute("title"), "Block old.com again");
+  assert.equal(btn.getAttribute("title"), "Restore old.com");
   assert.equal(btn.querySelector("svg").getAttribute("aria-hidden"), "true");
   assert.ok(root.querySelector('button[data-action="delete"]'));
 });
@@ -526,11 +526,11 @@ test("first Delete click shows the confirm group, writes nothing, focuses Confir
   assert.ok(group);
   assert.match(group.textContent, /Really delete\?/);
   const confirm = q(document, "Confirm delete of old.com");
-  assert.equal(confirm.title, "Delete old.com permanently");
+  assert.equal(confirm.title, "Confirm delete of old.com");
   assert.equal(confirm.className.includes("btn-remove"), true);
   assert.match(confirm.textContent, /Confirm/);
   const cancel = q(document, "Cancel delete of old.com");
-  assert.equal(cancel.title, "Keep old.com");
+  assert.equal(cancel.title, "Cancel delete of old.com");
   assert.match(cancel.textContent, /Cancel/);
   assert.equal(confirm.classList.contains("btn-small"), true);
   assert.equal(cancel.classList.contains("btn-small"), true);
@@ -849,10 +849,10 @@ test("Export list and Import list… buttons are grey outlined with icons, label
     assert.ok(b.querySelector("svg[aria-hidden='true']"));
   }
   assert.equal(exp.getAttribute("aria-label"), "Export list");
-  assert.equal(exp.title, "Download your list as a JSON file");
+  assert.equal(exp.title, "Export list");
   assert.equal(exp.textContent.trim(), "Export list");
   assert.equal(imp.getAttribute("aria-label"), "Import list…");
-  assert.equal(imp.title, "Load a list from an exported JSON file");
+  assert.equal(imp.title, "Import list…");
   assert.equal(imp.textContent.trim(), "Import list…");
   const file = document.getElementById("import-file");
   assert.equal(file.type, "file");
@@ -955,8 +955,8 @@ test("picking a file shows the review with counts and skips, and focuses its hea
   const lines = [...root.querySelectorAll("li")].map((li) => li.textContent);
   assert.deepEqual(lines, ["reddit.com is a Reddit domain", "not a domain isn't a valid domain"]);
   assert.equal(document.getElementById("import-file").value, "");
-  assert.equal(q(document, "Import").title, "Add these domains to your list");
-  assert.equal(q(document, "Cancel import").title, "Don't import");
+  assert.equal(q(document, "Import").title, "Import");
+  assert.equal(q(document, "Cancel import").title, "Cancel import");
   assert.ok(q(document, "Import").classList.contains("btn-restore"));
   assert.equal(root.querySelector("[role=status],[role=alert],[aria-live]"), null);
 });
@@ -1184,6 +1184,7 @@ test("every button has an icon, a visible label, a title, and an aria-label cont
     assert.ok(b.querySelector("svg[aria-hidden=true]"), `${label}: icon`);
     assert.ok(label.length > 0, "visible label");
     assert.ok(b.title.length > 0, `${label}: title`);
+    assert.equal(b.title, b.getAttribute("aria-label"), `${label}: title equals aria-label`);
     assert.ok(b.getAttribute("aria-label")?.includes(label), `${label}: aria-label contains label`);
   }
 });
@@ -1199,6 +1200,13 @@ test("options.css hides button text and enlarges targets at 412px, including btn
   assert.match(target.decls, /padding:\s*0\.5rem/);
   assert.match(ruleFor(body, /\.btn svg/).decls, /width:\s*20px;\s*height:\s*20px/);
   assert.doesNotMatch(body, /confirm-text/);
+});
+
+test("button rows wrap, and the 412px block follows the base .btn-small rule", () => {
+  assert.match(ruleFor(CSS, /^\s*\.transfer\s*$/).decls, /flex-wrap:\s*wrap/);
+  assert.match(ruleFor(CSS, /^\s*\.review-actions\s*$/).decls, /flex-wrap:\s*wrap/);
+  assert.ok(CSS.indexOf("\n.btn-small {") >= 0);
+  assert.ok(CSS.indexOf("\n.btn-small {") < CSS.indexOf("@media (max-width: 412px)"));
 });
 
 test("options.css has a forced-colors block for buttons, focus, and the input", () => {
@@ -1253,6 +1261,7 @@ test("options.css stacks tables at 32rem and hides thead visually, not with disp
   assert.match(ruleFor(body, /td\.domain/).decls, /overflow-wrap:\s*anywhere/);
   assert.ok(CSS.indexOf("@media (max-width: 32rem)") < CSS.indexOf("@media (max-width: 412px)"));
   assert.match(CSS, /\.cell-label\s*\{[^}]*display:\s*none/);
+  assert.match(ruleFor(body, /\.confirm-group/).decls, /justify-content:\s*flex-start/);
 });
 
 test("the delete confirmation works the same with the stacked markup", async () => {

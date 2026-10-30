@@ -18,16 +18,16 @@ export async function init(env) {
   const archivedHeading = document.getElementById("archived-heading");
 
   addButton.setAttribute("aria-label", "Add");
-  addButton.title = "Add this domain to your list";
+  addButton.title = "Add";
   addButton.innerHTML = `${icon("plus")}<span>Add</span>`;
   errorEl.id = "error";
   const exportButton = document.getElementById("export-button");
   const importButton = document.getElementById("import-button");
   exportButton.setAttribute("aria-label", "Export list");
-  exportButton.title = "Download your list as a JSON file";
+  exportButton.title = "Export list";
   exportButton.innerHTML = `${icon("download")}<span>Export list</span>`;
   importButton.setAttribute("aria-label", "Import list…");
-  importButton.title = "Load a list from an exported JSON file";
+  importButton.title = "Import list…";
   importButton.innerHTML = `${icon("upload")}<span>Import list…</span>`;
 
   // One message shows at a time. The Add form's errors (`field`) sit under the

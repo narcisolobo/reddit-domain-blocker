@@ -19,6 +19,12 @@ const AXE_OPTIONS = {
   rules: { "color-contrast": { enabled: false } },
 };
 
+// Incomplete rule ids that jsdom cannot evaluate; any other incomplete result fails.
+const CANNOT_EVALUATE_IN_JSDOM = new Set([
+  // Each radio has exactly one wrapping <label>; the check cannot confirm label visibility without layout.
+  "form-field-multiple-labels",
+]);
+
 function stored(status = "active") {
   return status === "active"
     ? { s: "a", c: 1, u: 1, o: "o" }
@@ -57,11 +63,18 @@ async function setup(items = {}) {
 }
 
 async function check(dom) {
-  const { violations } = await dom.window.axe.run(dom.window.document, AXE_OPTIONS);
+  const { violations, passes, incomplete } = await dom.window.axe.run(dom.window.document, AXE_OPTIONS);
   const summary = violations
     .map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)
     .join("\n");
   assert.equal(violations.length, 0, summary);
+  assert.ok(passes.length > 0, "axe evaluated no rules");
+  const unexpected = incomplete.filter((r) => !CANNOT_EVALUATE_IN_JSDOM.has(r.id));
+  assert.equal(
+    unexpected.length,
+    0,
+    unexpected.map((r) => `${r.id}: ${r.nodes.map((n) => n.target.join(" ")).join(", ")}`).join("\n"),
+  );
 }
 
 test("axe: options page, empty", async () => {
@@ -126,6 +139,7 @@ test("axe: a hidden stub and a shown stub in a Reddit-like page", async () => {
   assert.ok(stub.element.shadowRoot.querySelector("button"));
   await check(dom);
   stub.setState("shown");
+  assert.ok(stub.element.shadowRoot.querySelector('button[aria-label="Hide post"]'));
   await check(dom);
 });
 

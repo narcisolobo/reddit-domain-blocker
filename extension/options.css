@@ -111,7 +111,7 @@ input[aria-invalid="true"] { border: 2px solid var(--error); }
 h2 { font-size: 1.25rem; margin: 2rem 0 0; }
 section + section { margin-top: 3rem; }
 
-.transfer { display: flex; gap: 0.5rem; margin-top: 1.5rem; }
+.transfer { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.5rem; }
 .btn-restore { color: var(--grey-text); border-color: var(--grey-border); }
 td.actions .btn + .btn { margin-left: 0.5rem; }
 td.count, th:nth-last-child(2) { text-align: right; font-variant-numeric: tabular-nums; padding-left: 1rem; padding-right: 1rem; }
@@ -157,7 +157,7 @@ td.actions { text-align: right; }
 #import-review fieldset { border: 0; margin: 1rem 0 0; padding: 0; }
 #import-review legend { padding: 0; font-weight: 600; }
 #import-review label { display: block; margin-top: 0.5rem; }
-.review-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+.review-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
 
 /* Stacked rows at narrow widths. The thead stays in the accessibility tree. */
 .cell-label { display: none; }
@@ -179,6 +179,7 @@ td.actions { text-align: right; }
   td.count { text-align: left; padding-left: 0; padding-right: 0; }
   td.actions { white-space: normal; text-align: left; padding-top: 0.5rem; }
   td.domain { overflow-wrap: anywhere; }
+  .confirm-group { justify-content: flex-start; }
 }
 
 /* Small screens: icon-only buttons keep their aria-label and title. The

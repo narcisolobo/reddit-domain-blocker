@@ -126,14 +126,14 @@ function row(doc, ...cells) {
   return tr;
 }
 
-function rowButton(doc, { action, domain, className, iconName, label, ariaLabel, title, onClick }) {
+function rowButton(doc, { action, domain, className, iconName, label, name, onClick }) {
   const btn = doc.createElement("button");
   btn.type = "button";
   btn.className = className;
   btn.dataset.domain = domain;
   btn.dataset.action = action;
-  btn.setAttribute("aria-label", ariaLabel);
-  btn.title = title;
+  btn.setAttribute("aria-label", name);
+  btn.title = name;
   btn.innerHTML = `${icon(iconName)}<span>${label}</span>`;
   btn.addEventListener("click", () => onClick(domain));
   return btn;
@@ -151,8 +151,7 @@ function confirmGroup(doc, domain, handlers) {
       className: "btn btn-small btn-remove",
       iconName: "trash",
       label: "Confirm",
-      ariaLabel: `Confirm delete of ${domain}`,
-      title: `Delete ${domain} permanently`,
+      name: `Confirm delete of ${domain}`,
       onClick: handlers.onConfirm,
     }),
     rowButton(doc, {
@@ -161,8 +160,7 @@ function confirmGroup(doc, domain, handlers) {
       className: "btn btn-small btn-restore",
       iconName: "x",
       label: "Cancel",
-      ariaLabel: `Cancel delete of ${domain}`,
-      title: `Keep ${domain}`,
+      name: `Cancel delete of ${domain}`,
       onClick: handlers.onCancel,
     }),
   );
@@ -219,8 +217,7 @@ export function renderList(root, records, stats, handlers) {
         className: "btn btn-remove",
         iconName: "trash",
         label: "Remove",
-        ariaLabel: `Remove ${rec.domain}`,
-        title: `Archive ${rec.domain}`,
+        name: `Remove ${rec.domain}`,
         onClick: handlers.onRemove,
       }),
     );
@@ -264,8 +261,7 @@ export function renderArchived(root, records, stats, handlers, confirming = null
         className: "btn btn-restore",
         iconName: "arrow-back-up",
         label: "Restore",
-        ariaLabel: `Restore ${rec.domain}`,
-        title: `Block ${rec.domain} again`,
+        name: `Restore ${rec.domain}`,
         onClick: handlers.onRestore,
       }),
       rec.domain === confirming
@@ -276,8 +272,7 @@ export function renderArchived(root, records, stats, handlers, confirming = null
             className: "btn btn-remove",
             iconName: "trash",
             label: "Delete permanently",
-            ariaLabel: `Delete permanently: ${rec.domain}`,
-            title: `Delete ${rec.domain} and its history`,
+            name: `Delete permanently: ${rec.domain}`,
             onClick: handlers.onDelete,
           }),
     );

@@ -23,12 +23,12 @@ function el(doc, tag, text) {
   return node;
 }
 
-function button(doc, { iconName, label, ariaLabel, title, onClick }) {
+function button(doc, { iconName, label, name, onClick }) {
   const btn = doc.createElement("button");
   btn.type = "button";
   btn.className = "btn btn-restore";
-  btn.setAttribute("aria-label", ariaLabel);
-  btn.title = title;
+  btn.setAttribute("aria-label", name);
+  btn.title = name;
   btn.innerHTML = `${icon(iconName)}<span>${label}</span>`;
   btn.addEventListener("click", onClick);
   return btn;
@@ -76,11 +76,10 @@ export function renderImportReview(root, { added, merged, skipped }, { onImport,
     button(doc, {
       iconName: "upload",
       label: "Import",
-      ariaLabel: "Import",
-      title: "Add these domains to your list",
+      name: "Import",
       onClick: () => onImport(section.querySelector("input[name=count-mode]:checked")?.value ?? "larger"),
     }),
-    button(doc, { iconName: "x", label: "Cancel", ariaLabel: "Cancel import", title: "Don't import", onClick: onCancel }),
+    button(doc, { iconName: "x", label: "Cancel", name: "Cancel import", onClick: onCancel }),
   );
   section.append(actions);
   section.addEventListener("keydown", (event) => {
