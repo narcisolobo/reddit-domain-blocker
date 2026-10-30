@@ -144,7 +144,8 @@ export async function init(env) {
     const mine = ++statsSeq;
     const items = await readArea(chrome.storage.local);
     if (mine !== statsSeq) return;
-    updateCounts(document, statsFromItems(items));
+    lastStats = statsFromItems(items);
+    updateCounts(document, lastStats);
   }
 
   async function act(domain, action, type) {

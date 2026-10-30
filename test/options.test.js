@@ -645,3 +645,15 @@ test("no window.confirm is called", async () => {
   await settle();
   assert.equal(document.querySelector('[role="status"]').textContent, "Deleted old.com permanently");
 });
+
+test("counts patched by a stats update survive the Delete and Cancel re-renders", async () => {
+  const { chrome, document } = await setup({ "d:old.com": stored("archived") });
+  await chrome.storage.local.set({ "stats:old.com": stat(7) });
+  await settle();
+  q(document, "Delete permanently: old.com").click();
+  await settle();
+  assert.equal(countOf(document, "old.com"), "7");
+  q(document, "Cancel delete of old.com").click();
+  await settle();
+  assert.equal(countOf(document, "old.com"), "7");
+});
