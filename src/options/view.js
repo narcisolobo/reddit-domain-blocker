@@ -111,7 +111,10 @@ function confirmGroup(doc, domain, handlers) {
     }),
   );
   group.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
+    // Holding Enter on Delete must not auto-repeat into Confirm or Cancel.
+    if ((event.key === "Enter" || event.key === " ") && event.repeat) {
+      event.preventDefault();
+    } else if (event.key === "Escape") {
       event.preventDefault();
       handlers.onCancel(domain);
     }

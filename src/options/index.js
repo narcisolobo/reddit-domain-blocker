@@ -17,12 +17,15 @@ export async function init(env) {
   addButton.innerHTML = `${icon("plus")}<span>Add</span>`;
   errorEl.id = "error";
 
-  function show(message) {
+  // Only the Add form's errors (`field`) mark the domain input invalid.
+  function show(message, { field = false } = {}) {
     if (message.kind === "error") {
       statusEl.textContent = "";
       errorEl.textContent = message.text;
-      input.setAttribute("aria-invalid", "true");
-      input.setAttribute("aria-describedby", errorEl.id);
+      if (field) {
+        input.setAttribute("aria-invalid", "true");
+        input.setAttribute("aria-describedby", errorEl.id);
+      }
     } else {
       errorEl.textContent = "";
       statusEl.textContent = message.text;
@@ -49,6 +52,8 @@ export async function init(env) {
   let lastRows = { remove: [], restore: [], delete: [] };
   let pendingFocus = null;
   let confirming = null;
+  // Domains with a row action awaiting its response; repeats are ignored.
+  const inFlight = new Set();
   let lastRecords = [];
   let lastStats = new Map();
 
@@ -149,6 +154,8 @@ export async function init(env) {
   }
 
   async function act(domain, action, type) {
+    if (inFlight.has(domain)) return;
+    inFlight.add(domain);
     pendingFocus = { domain, action };
     try {
       const result = await send({ type, domain });
@@ -158,6 +165,7 @@ export async function init(env) {
       await refresh();
       await latest;
     } finally {
+      inFlight.delete(domain);
       pendingFocus = null;
     }
   }
@@ -176,17 +184,24 @@ export async function init(env) {
   }
 
   function onCancel(domain) {
+    if (inFlight.has(domain)) return;
     confirming = null;
     render(lastRecords, lastStats);
     focusDelete(domain);
   }
 
   async function onConfirm(domain) {
+    if (inFlight.has(domain)) return;
+    inFlight.add(domain);
     // On success the row disappears and focus moves via the Restore chain.
     pendingFocus = { domain, action: "restore" };
     try {
       const result = await send({ type: "domain/delete", domain });
-      const message = messageFor(result);
+      // Already gone (e.g. deleted from another tab) is the outcome we wanted.
+      const message =
+        result?.ok === false && result.reason === "not-found"
+          ? { kind: "status", text: `Deleted ${domain} permanently` }
+          : messageFor(result);
       confirming = null;
       show(message);
       if (message.kind !== "status") {
@@ -197,6 +212,7 @@ export async function init(env) {
       await refresh();
       await latest;
     } finally {
+      inFlight.delete(domain);
       pendingFocus = null;
     }
   }
@@ -205,7 +221,7 @@ export async function init(env) {
     event.preventDefault();
     const result = await send({ type: "domain/add", input: input.value, source: "options" });
     const message = messageFor(result);
-    show(message);
+    show(message, { field: true });
     if (message.kind === "status") {
       input.value = "";
       input.focus();

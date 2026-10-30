@@ -657,3 +657,123 @@ test("counts patched by a stats update survive the Delete and Cancel re-renders"
   await settle();
   assert.equal(countOf(document, "old.com"), "7");
 });
+
+// ---- Final-review fixes ----
+const slowDelete = (chrome) => {
+  const sent = [];
+  let release;
+  const gate = new Promise((r) => (release = r));
+  const original = chrome.runtime.sendMessage.bind(chrome.runtime);
+  chrome.runtime.sendMessage = async (m) => {
+    sent.push(m);
+    await gate;
+    return original(m);
+  };
+  return { sent, release };
+};
+
+test("a second Confirm click while the delete is in flight is ignored", async () => {
+  const { chrome, document } = await setup({ "d:old.com": stored("archived") });
+  const { sent, release } = slowDelete(chrome);
+  q(document, "Delete permanently: old.com").click();
+  await settle();
+  const confirm = q(document, "Confirm delete of old.com");
+  confirm.click();
+  confirm.click();
+  release();
+  await settle();
+  assert.equal(sent.filter((m) => m.type === "domain/delete").length, 1);
+  assert.equal(document.querySelector('[role="status"]').textContent, "Deleted old.com permanently");
+  assert.equal(document.querySelector('[role="alert"]').textContent, "");
+  assert.equal(document.getElementById("domain-input").hasAttribute("aria-invalid"), false);
+});
+
+test("Cancel and Escape while the delete is in flight are ignored", async () => {
+  const { chrome, document } = await setup({ "d:old.com": stored("archived") });
+  const { sent, release } = slowDelete(chrome);
+  q(document, "Delete permanently: old.com").click();
+  await settle();
+  q(document, "Confirm delete of old.com").click();
+  q(document, "Cancel delete of old.com").click();
+  q(document, "Confirm delete of old.com").dispatchEvent(
+    new document.defaultView.KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+  );
+  assert.ok(document.querySelector('[role="group"]'));
+  release();
+  await settle();
+  assert.equal(sent.length, 1);
+  assert.equal(document.querySelector('[role="status"]').textContent, "Deleted old.com permanently");
+});
+
+test("a not-found delete result is treated as already gone", async () => {
+  const { chrome, document } = await setup({ "d:old.com": stored("archived") });
+  q(document, "Delete permanently: old.com").click();
+  await settle();
+  chrome.runtime.sendMessage = async () => ({ ok: false, domain: "old.com", reason: "not-found" });
+  q(document, "Confirm delete of old.com").click();
+  await settle();
+  assert.equal(document.querySelector('[role="status"]').textContent, "Deleted old.com permanently");
+  assert.equal(document.querySelector('[role="alert"]').textContent, "");
+});
+
+test("a double Restore sends one message", async () => {
+  const { chrome, document } = await setup({ "d:old.com": stored("archived") });
+  const { sent, release } = slowDelete(chrome);
+  const restore = q(document, "Restore old.com");
+  restore.click();
+  restore.click();
+  release();
+  await settle();
+  assert.equal(sent.length, 1);
+});
+
+test("a failed Remove, Restore or Delete leaves the domain input valid", async () => {
+  const { chrome, document } = await setup({ "d:a.com": stored("active"), "d:old.com": stored("archived") });
+  const input = document.getElementById("domain-input");
+  chrome.runtime.sendMessage = async () => ({ ok: false, reason: "error" });
+  const check = () => {
+    assert.ok(document.querySelector('[role="alert"]').textContent.length > 0);
+    assert.equal(input.hasAttribute("aria-invalid"), false);
+    assert.equal(input.hasAttribute("aria-describedby"), false);
+  };
+  q(document, "Remove a.com").click();
+  await settle();
+  check();
+  q(document, "Restore old.com").click();
+  await settle();
+  check();
+  q(document, "Delete permanently: old.com").click();
+  await settle();
+  q(document, "Confirm delete of old.com").click();
+  await settle();
+  check();
+});
+
+test("held Enter or Space (auto-repeat) on Confirm does not delete", async () => {
+  const { chrome, document } = await setup({ "d:old.com": stored("archived") });
+  const sent = spySend(chrome);
+  q(document, "Delete permanently: old.com").click();
+  await settle();
+  const Ev = document.defaultView.KeyboardEvent;
+  for (const key of ["Enter", " "]) {
+    for (const label of ["Confirm delete of old.com", "Cancel delete of old.com"]) {
+      const ev = new Ev("keydown", { key, repeat: true, bubbles: true, cancelable: true });
+      q(document, label).dispatchEvent(ev);
+      assert.equal(ev.defaultPrevented, true);
+    }
+  }
+  const first = new Ev("keydown", { key: "Enter", bubbles: true, cancelable: true });
+  q(document, "Confirm delete of old.com").dispatchEvent(first);
+  assert.equal(first.defaultPrevented, false);
+  await settle();
+  assert.deepEqual(sent, []);
+});
+
+test("a stored record with an out-of-range timestamp does not break the Archived section", async () => {
+  const { document } = await setup({
+    "d:bad.com": { s: "x", c: 1, u: 1, x: 1e20, o: "o" },
+    "d:old.com": stored("archived"),
+  });
+  assert.ok(q(document, "Restore old.com"));
+  assert.equal(q(document, "Restore bad.com"), null);
+});
