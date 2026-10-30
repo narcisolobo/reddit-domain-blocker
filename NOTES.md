@@ -81,4 +81,7 @@ Run by the owner in their own Chrome with `extension/` loaded unpacked (the auto
 | 5 Show post reveals one post; Unblock domain restores in every tab | Pass |
 | 14 DevTools: the hidden post is still in the page, marked `data-rdb-hidden` on the `shreddit-post` element (the `article` wrapper is not marked and has no `aria-label`); the stub is a sibling inserted before it | Pass (owner pasted the element) |
 | 9 Theme: new Reddit stub dark, old Reddit stub light (screenshots); switch opposite to OS | Switch opposite to OS: owner reported pass |
-| 12 Overlay above a listing, flash measurement, console errors, Show-post click bubbling | Not yet checked |
+| 12 Overlay above a listing | Not applicable: new Reddit opens a post in the same tab with no overlay (M0). Replaced by a navigation check below |
+| 12 Navigation, new Reddit: listing -> post page -> Back (client-side) | Pass: a post's own page shows no stubs (it has an ad and comments, no related-posts feed); after Back the listing shows its stubs again, not doubled |
+| 12 A post revealed with Show post, opened, then Back | Still revealed after Back (revealed state lasts for the page load, as designed) |
+| Flash measurement, console errors, Show-post click bubbling | Not yet checked |
