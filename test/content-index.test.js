@@ -35,7 +35,15 @@ async function setup({ items = {}, posts = [], withNavigation = true, url = LIST
   const navigation = withNavigation ? new EventTarget() : undefined;
   const target = new EventTarget();
   const intervals = [];
+  const timeouts = [];
   const win = {
+    setTimeout: (fn, ms) => {
+      timeouts.push({ fn, ms, cleared: false });
+      return timeouts.length;
+    },
+    clearTimeout: (id) => {
+      if (timeouts[id - 1]) timeouts[id - 1].cleared = true;
+    },
     navigation,
     addEventListener: (...args) => target.addEventListener(...args),
     setInterval: (fn, ms) => {
@@ -46,7 +54,7 @@ async function setup({ items = {}, posts = [], withNavigation = true, url = LIST
   const blocker = await init({ chrome: fake, document, location, window: win });
   const post = (id) => document.getElementById(id);
   const isHidden = (id) => post(id).hasAttribute("data-rdb-hidden");
-  return { fake, document, location, win, navigation, target, intervals, blocker, post, isHidden };
+  return { fake, document, location, win, navigation, target, intervals, timeouts, blocker, post, isHidden };
 }
 
 test("first scan uses the stored list: a matching post present at start is hidden", async () => {
@@ -301,4 +309,61 @@ test("popstate triggers handleUrlChange", async () => {
 
 test("importing the module without chrome does not run init", () => {
   assert.equal(typeof init, "function");
+});
+
+test("hidden posts produce one stats/hits message after the timer fires", async () => {
+  const msgs = [];
+  const t = await setup({
+    items: { "d:example.com": rec() },
+    posts: [
+      { id: "t3_a", href: "https://example.com/a" },
+      { id: "t3_b", href: "https://example.com/b" },
+    ],
+    prepare: (fake) => fake.runtime.setMessageHandler((m) => (msgs.push(m), { ok: true })),
+  });
+  assert.equal(msgs.length, 0);
+  const live = t.timeouts.filter((x) => !x.cleared);
+  assert.equal(live.length, 1);
+  live[0].fn();
+  await flush();
+  assert.deepEqual(msgs, [{ type: "stats/hits", hits: { "example.com": 2 } }]);
+});
+
+test("pagehide flushes pending hits", async () => {
+  const msgs = [];
+  const t = await setup({
+    items: { "d:example.com": rec() },
+    posts: [{ id: "t3_a", href: "https://example.com/a" }],
+    prepare: (fake) => fake.runtime.setMessageHandler((m) => (msgs.push(m), { ok: true })),
+  });
+  t.target.dispatchEvent(new Event("pagehide"));
+  await flush();
+  assert.deepEqual(msgs, [{ type: "stats/hits", hits: { "example.com": 1 } }]);
+});
+
+test("a notice message shows the notice; malformed notice messages are ignored", async () => {
+  const t = await setup({ posts: [{ id: "t3_a", href: "https://example.com/a" }] });
+  const host = () => t.document.querySelector("[data-rdb-notice]");
+  for (const bad of [
+    undefined,
+    null,
+    "notice",
+    { type: "other", kind: "error", text: "x" },
+    { type: "notice", kind: "warn", text: "x" },
+    { type: "notice", kind: "error", text: "" },
+    { type: "notice", kind: "error", text: 5 },
+    { type: "notice", kind: "error" },
+  ]) {
+    await t.fake.runtime.dispatchMessage(bad);
+  }
+  assert.equal(host(), null);
+  await t.fake.runtime.dispatchMessage({ type: "notice", kind: "error", text: "Nope" });
+  await flush();
+  assert.equal(host().shadowRoot.querySelector('[role="alert"]').textContent, "Nope");
+  await t.fake.runtime.dispatchMessage({ type: "notice", kind: "status", text: "y".repeat(400) });
+  await flush();
+  assert.equal(host().shadowRoot.querySelector('[role="status"]').textContent.length, 300);
+  await t.fake.storage.sync.set({ "d:example.com": rec() });
+  await flush();
+  assert.equal(t.isHidden("t3_a"), true, "notice does not disturb hiding");
 });

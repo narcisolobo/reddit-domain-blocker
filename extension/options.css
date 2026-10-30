@@ -43,7 +43,7 @@ body {
 }
 
 main {
-  max-width: 40rem;
+  max-width: 56rem;
   margin: 0 auto;
   padding: 2rem 1rem 4rem;
 }
@@ -93,9 +93,29 @@ input[aria-invalid="true"] { border: 2px solid var(--error); }
 .message-error { color: var(--error); font-weight: 600; }
 .message:empty { min-height: 0; margin: 0; }
 
+/* Sticky so a message stays in view after acting far down a long list. The
+   reserved height keeps the form from shifting when text appears. */
+.notices {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  min-height: 2.5rem;
+  padding: 0.5rem 0;
+  margin-bottom: 0.5rem;
+  background: var(--bg);
+}
+.notices .message { margin: 0; }
+
 .empty { color: var(--muted); margin: 2rem 0 0; }
 
-table.domains { width: 100%; margin-top: 2rem; border-collapse: collapse; }
+h2 { font-size: 1.25rem; margin: 2rem 0 0; }
+section + section { margin-top: 3rem; }
+
+.btn-restore { color: var(--grey-text); border-color: var(--grey-border); }
+td.actions .btn + .btn { margin-left: 0.5rem; }
+td.count, th:nth-last-child(2) { text-align: right; font-variant-numeric: tabular-nums; padding-left: 1rem; padding-right: 1rem; }
+
+table.domains { width: 100%; margin-top: 0.5rem; border-collapse: collapse; }
 
 caption {
   text-align: left;
@@ -104,10 +124,12 @@ caption {
   padding-bottom: 0.5rem;
 }
 
-th { text-align: left; color: var(--muted); font-weight: 600; padding: 0.5rem 0; border-bottom: 1px solid var(--rule); }
+th { text-align: left; color: var(--muted); font-weight: 600; padding: 0.5rem 0; border-bottom: 1px solid var(--rule); white-space: nowrap; }
 td { padding: 0.875rem 0; border-bottom: 1px solid var(--rule); }
+th:not(:last-child), td:not(:last-child) { padding-right: 1rem; }
 td.domain { overflow-wrap: anywhere; }
 td.actions { text-align: right; }
+@media (min-width: 40rem) { td.actions { white-space: nowrap; } }
 
 .visually-hidden {
   position: absolute;
@@ -121,3 +143,9 @@ td.actions { text-align: right; }
   white-space: nowrap;
   border: 0;
 }
+
+/* Sits on its own line under the row's buttons so the row never crowds. */
+.confirm-group { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; }
+.confirm-text { font-weight: 600; }
+/* Stays above the 24px minimum target size (WCAG 2.5.8). */
+.btn-small { padding: 0.25rem 0.625rem; font-size: 0.875rem; min-height: 1.75rem; }

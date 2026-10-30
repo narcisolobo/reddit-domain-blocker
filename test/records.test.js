@@ -79,5 +79,14 @@ test("fromStored rejects each kind of bad value", () => {
   assert.equal(fromStored("d:a.com", { ...good, s: "x" }), null);
 });
 
+test("fromStored rejects timestamps outside the valid Date range", () => {
+  const good = { s: "x", c: 1, u: 2, x: 3, o: "o" };
+  assert.ok(fromStored("d:a.com", good));
+  assert.ok(fromStored("d:a.com", { ...good, x: 8.64e15 }));
+  assert.equal(fromStored("d:a.com", { ...good, x: 1e20 }), null);
+  assert.equal(fromStored("d:a.com", { ...good, c: -1e20 }), null);
+  assert.equal(fromStored("d:a.com", { ...good, u: 8.64e15 + 1 }), null);
+});
+
 test("activeDomains filters archived", () =>
   assert.deepEqual(activeDomains([active, archived]), ["example.com"]));

@@ -9,6 +9,10 @@
 <body>
   <main>
     <h1>Reddit Domain Blocker</h1>
+    <div class="notices">
+      <div id="status" role="status" class="message message-status"></div>
+      <div id="action-error" role="alert" class="message message-error"></div>
+    </div>
     <form id="add-form" novalidate>
       <label for="domain-input">Domain or URL</label>
       <div class="form-row">
@@ -16,9 +20,15 @@
         <button type="submit" class="btn btn-add" id="add-button"></button>
       </div>
     </form>
-    <div id="status" role="status" class="message message-status"></div>
     <div id="error" role="alert" class="message message-error"></div>
-    <section id="list" aria-label="Blocked domains list"></section>
+    <section aria-labelledby="active-heading">
+      <h2 id="active-heading">Blocked domains</h2>
+      <div id="list"></div>
+    </section>
+    <section aria-labelledby="archived-heading">
+      <h2 id="archived-heading" tabindex="-1">Archived</h2>
+      <div id="archived-list"></div>
+    </section>
   </main>
   <script src="options.js"></script>
 </body>

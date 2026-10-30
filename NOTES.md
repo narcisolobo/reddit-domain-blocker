@@ -87,3 +87,31 @@ Run by the owner in their own Chrome with `extension/` loaded unpacked (the auto
 | Flash (spec 4.2): blocked posts painting before they are hidden, cold load and infinite scroll | Owner reported no flash. The pre-paint step in 4.2 is not needed for M1 |
 | Show post / Hide post: click and Enter on a focused button | Pass: shows and hides the entry, never opens the post or the page |
 | Console, new Reddit listing (screenshot) | Only Reddit's own messages: report-only CSP notices for its inline handlers (`ss-content.js`), preload and deprecated-meta warnings. Nothing from `content.js` or `chrome-extension://`. The 261 "errors" in the issues counter were not itemized; filtering the console by `chrome-extension` came back empty, so none are ours |
+
+## M2 verification
+
+Run by the owner in their own Chrome with `extension/` loaded unpacked, on new and old Reddit. Numbers are the checks in Task 8, Step 1 of the M2 plan.
+
+| Check | Result |
+|---|---|
+| 1.1 Right-click an outbound link, Block this domain: posts hide in every open tab, options page updates without a reload | Pass, new and old Reddit. Old Reddit blocks the real domain, not `out.reddit.com`. The refusal text for ads was confusing and has been changed (see below) |
+| 1.2 Right-click a comments link or username: notice explains, nothing added | Pass, new and old Reddit |
+| 1.3 Paste `https://www.example.com:8080/a/b?c=d#e` saves `example.com`; `reddit.com` refused | Pass |
+| 1.4 Posts hidden rises within about a second of scrolling; scrolling back doesn't add; a reload counts again | Pass. The count also rises for the same post in a second tab and on old Reddit; see the note below |
+| 1.5 Remove moves to Archived with today's date and keeps the count; Restore brings it back with the count | Pass. Follow-up: the table was crowded; the options page was widened |
+| 1.6 Delete permanently shows "Really delete?"; only Confirm deletes; Cancel and Escape back out; re-adding starts at 0 | Pass. Follow-up: the confirmation crowds the row |
+| 1.7 Keyboard only: Restore, Delete → Confirm, Delete → Escape, Dismiss on the notice | Restore and Delete flows pass. Escape closes the notice when Dismiss has focus. Fail: Dismiss can't be reached with Tab on a feed (infinite scroll), only with Shift+Tab; and after dismissing, focus lands in the Chrome title bar |
+| 1.8 Console: nothing from `content.js`; service worker console has no errors | Pass |
+
+### Follow-ups found during verification
+
+- Fixed: Dismiss on the notice was unreachable by Tab on a feed, and focus was lost after dismissing. Escape now dismisses from anywhere while the notice shows, and focus goes back to the element that had it. Needs a re-check in Chrome (jsdom tests only so far).
+- Fixed: a refused right-click on a new Reddit ad now says "This looks like an ad. Ads can't be blocked by domain." It matches the link host `alb.reddit.com`, taken from an ad the owner inspected. Not verified on old Reddit: no ad could be found on the old Reddit home page or r/all (searched for "promoted"), so old Reddit ads keep the generic text unless they use the same host.
+- Fixed: the empty-state copy now says "outgoing link".
+- Fixed: the delete confirmation crowded its row. "Really delete?", Confirm and Cancel now sit on their own line under Restore, with smaller buttons, and table columns have a gap between them. Checked by the owner in Chrome.
+- Fixed: status messages ("Deleted", "Restored", "Removed") showed under the add field, away from where the user acted. They now show in a sticky region under the page title, along with errors from row actions. Errors from the add field stay under the input. Checked by the owner in Chrome.
+- The duplicate "Blocked domains" and "Archived" headings stay deferred to M4.
+
+### Posts hidden counts the same post more than once, on purpose
+
+The count is "how many times a post from this domain was hidden", not "how many different posts". Each page load keeps its own in-memory set of post ids, so the same post counts again after a reload, in a second tab, and on old Reddit as well as new. No URL or post id is stored. Only `stats:<domain>` is written, as `{ blockedCount, lastBlockedAt }` (plan, Global Constraints: "A reload counts again"). Persisting ids to count unique posts would keep a log of what was seen, grow without a bound, and need clean-up on Delete permanently. If a unique count is wanted later, a `chrome.storage.session` set would be the cheaper route, and it would be a spec change.

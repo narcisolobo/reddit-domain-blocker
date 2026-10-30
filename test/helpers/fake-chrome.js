@@ -56,6 +56,11 @@ export function createFakeChrome() {
   let invalidated = false;
   const messageListeners = [];
   const clickListeners = [];
+  const menuClickListeners = [];
+  const installListeners = [];
+  const menuItems = [];
+  const sent = [];
+  let nextSendError = null;
 
   const openOptionsPage = () => {
     openOptionsPage.calls += 1;
@@ -76,6 +81,10 @@ export function createFakeChrome() {
         return messageHandler(msg);
       },
       onMessage: { addListener: (fn) => messageListeners.push(fn) },
+      onInstalled: { addListener: (fn) => installListeners.push(fn) },
+      install() {
+        return Promise.all(installListeners.map((fn) => fn({ reason: "install" })));
+      },
       openOptionsPage,
       setMessageHandler(fn) {
         messageHandler = fn;
@@ -97,6 +106,33 @@ export function createFakeChrome() {
           }
           if (!willRespond && !answered) resolve(undefined);
         });
+      },
+    },
+    contextMenus: {
+      items: menuItems,
+      create(props) {
+        menuItems.push(props);
+      },
+      removeAll() {
+        menuItems.length = 0;
+      },
+      onClicked: { addListener: (fn) => menuClickListeners.push(fn) },
+      click(info, tab) {
+        return Promise.all(menuClickListeners.map((fn) => fn(info, tab)));
+      },
+    },
+    tabs: {
+      sent,
+      async sendMessage(tabId, msg) {
+        if (nextSendError) {
+          const err = nextSendError;
+          nextSendError = null;
+          throw err;
+        }
+        sent.push({ tabId, msg });
+      },
+      failNextSend(err) {
+        nextSendError = err;
       },
     },
     action: {
