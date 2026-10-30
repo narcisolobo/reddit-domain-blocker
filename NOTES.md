@@ -84,4 +84,6 @@ Run by the owner in their own Chrome with `extension/` loaded unpacked (the auto
 | 12 Overlay above a listing | Not applicable: new Reddit opens a post in the same tab with no overlay (M0). Replaced by a navigation check below |
 | 12 Navigation, new Reddit: listing -> post page -> Back (client-side) | Pass: a post's own page shows no stubs (it has an ad and comments, no related-posts feed); after Back the listing shows its stubs again, not doubled |
 | 12 A post revealed with Show post, opened, then Back | Still revealed after Back (revealed state lasts for the page load, as designed) |
-| Flash measurement, console errors, Show-post click bubbling | Not yet checked |
+| Flash (spec 4.2): blocked posts painting before they are hidden, cold load and infinite scroll | Owner reported no flash. The pre-paint step in 4.2 is not needed for M1 |
+| Show post / Hide post: click and Enter on a focused button | Pass: shows and hides the entry, never opens the post or the page |
+| Console, new Reddit listing (screenshot) | Only Reddit's own messages: report-only CSP notices for its inline handlers (`ss-content.js`), preload and deprecated-meta warnings. Nothing from `content.js` or `chrome-extension://`. The 261 "errors" in the issues counter were not itemized; owner to filter the console by `chrome-extension` to confirm none are ours |
