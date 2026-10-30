@@ -14,6 +14,9 @@ async function restoreStats(local, previous, keys) {
   if (drop.length) await local.remove(drop);
 }
 
+// The limit pre-check already ran, so a quota error here is Chrome refusing the write.
+const syncFailure = (err) => (failureReason(err) === "quota" ? "import-quota" : "error");
+
 export async function importDomains(areas, text, countMode) {
   if (typeof text !== "string") return { ok: false, reason: "unreadable" };
   if (countMode !== "larger" && countMode !== "sum") return { ok: false, reason: "error" };
@@ -39,17 +42,24 @@ export async function importDomains(areas, text, countMode) {
     if (!limits.ok) return limits;
 
     const localKeys = Object.keys(plan.localItems);
-    if (localKeys.length) await areas.local.set(plan.localItems);
+    if (localKeys.length) {
+      try {
+        await areas.local.set(plan.localItems);
+      } catch (err) {
+        return { ok: false, reason: syncFailure(err) };
+      }
+    }
     if (Object.keys(plan.syncItems).length) {
       try {
         await areas.sync.set(plan.syncItems);
       } catch (err) {
         try {
           await restoreStats(areas.local, localItems, localKeys);
-        } catch {
+        } catch (restoreErr) {
           // Best effort: report the original failure.
+          console.error("Could not restore stats after a failed import", restoreErr);
         }
-        return { ok: false, reason: failureReason(err) };
+        return { ok: false, reason: syncFailure(err) };
       }
     }
     return { ok: true, outcome: "imported", added: plan.added, merged: plan.merged, skipped };

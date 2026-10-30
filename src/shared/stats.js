@@ -1,3 +1,5 @@
+import { validTime } from "./records.js";
+
 export const STATS_PREFIX = "stats:";
 
 export function statsKey(domain) {
@@ -8,7 +10,7 @@ export function parseStats(value) {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
   const { blockedCount, lastBlockedAt } = value;
   if (!Number.isSafeInteger(blockedCount) || blockedCount < 0) return null;
-  if (lastBlockedAt !== null && !Number.isFinite(lastBlockedAt)) return null;
+  if (lastBlockedAt !== null && !validTime(lastBlockedAt)) return null;
   return { blockedCount, lastBlockedAt };
 }
 

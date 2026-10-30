@@ -13,7 +13,7 @@ const ERROR_TEXT = {
 const IMPORT_TEXT = {
   unreadable: "That file isn't a Reddit Domain Blocker export. Nothing was imported.",
   "unsupported-version": "That export is from a different version of Reddit Domain Blocker. Nothing was imported.",
-  "nothing-to-import": "Nothing to import: every entry in that file was skipped.",
+  "import-quota": "Chrome refused to save the import. Nothing was imported. Try again in a minute.",
   "file-too-big": "That file is too large to be an export. Nothing was imported.",
 };
 
@@ -49,6 +49,14 @@ export function messageFor(result) {
     }
     if (result.reason === "not-archived") {
       return { kind: "error", text: `${domain || "That domain"} is blocked again, so it wasn't deleted.` };
+    }
+    if (result.reason === "nothing-to-import") {
+      return {
+        kind: "error",
+        text: result.skipped === 0
+          ? "That file has no domains in it. Nothing was imported."
+          : "Nothing to import: every entry in that file was skipped.",
+      };
     }
     if (Object.hasOwn(IMPORT_TEXT, result.reason)) return { kind: "error", text: IMPORT_TEXT[result.reason] };
     if (result.reason === "too-many") {

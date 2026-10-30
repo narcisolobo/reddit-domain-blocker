@@ -256,7 +256,8 @@ export async function init(env) {
       document.body.append(link);
       link.click();
       link.remove();
-      URL.revokeObjectURL(url);
+      // Revoke after the browser has had a turn to start the download.
+      document.defaultView.setTimeout(() => URL.revokeObjectURL(url), 0);
       show(messageFor({ ok: true, outcome: "exported", count: data.domains.length }));
     } catch {
       show(messageFor(undefined));
@@ -292,7 +293,7 @@ export async function init(env) {
     if (mine !== pickToken) return;
     const parsed = parseImport(text);
     const refusal = !parsed.ok ? parsed.reason : parsed.entries.length === 0 ? "nothing-to-import" : null;
-    if (refusal) return show(messageFor({ ok: false, reason: refusal }));
+    if (refusal) return show(messageFor({ ok: false, reason: refusal, skipped: parsed.skipped?.length }));
     const plan = planImport(lastRecords, lastStats, parsed.entries, "larger");
     let sending = false;
     renderImportReview(reviewEl, { added: plan.added, merged: plan.merged, skipped: parsed.skipped }, {

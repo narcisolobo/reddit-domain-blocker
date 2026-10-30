@@ -74,9 +74,9 @@ test("buildExport produces the 5.4 shape with ISO dates, sorted, archived includ
   assert.equal(out.domains[1].lastBlockedAt, null);
 });
 
-test("exportFilename uses the UTC date", () => {
-  assert.equal(exportFilename(Date.UTC(2026, 9, 30, 23)), "reddit-domain-blocker-2026-10-30.json");
-  assert.equal(exportFilename(Date.UTC(2026, 0, 2, 0)), "reddit-domain-blocker-2026-01-02.json");
+test("exportFilename uses the local date", () => {
+  assert.equal(exportFilename(new Date(2026, 9, 30, 23, 30).getTime()), "reddit-domain-blocker-2026-10-30.json");
+  assert.equal(exportFilename(new Date(2026, 0, 2, 0, 5).getTime()), "reddit-domain-blocker-2026-01-02.json");
 });
 
 test("export then parse round-trips every field", () => {
@@ -137,6 +137,15 @@ test("parseImport skips bad records with reasons and keeps the rest", () => {
   assert.equal(parsed.skipped[3].index, 4);
 });
 
+test("parseImport skips a non-string domain as invalid-domain with a null raw domain", () => {
+  const parsed = parseImport(fileOf([fileRec(["a.com"]), fileRec(123)]));
+  assert.deepEqual(parsed.entries, []);
+  assert.deepEqual(parsed.skipped, [
+    { index: 0, domain: null, reason: "invalid-domain" },
+    { index: 1, domain: null, reason: "invalid-domain" },
+  ]);
+});
+
 test("parseImport normalizes domains", () => {
   const parsed = parseImport(fileOf([fileRec("https://WWW.Example.com/x")]));
   assert.equal(parsed.entries[0].domain, "example.com");
@@ -194,6 +203,14 @@ test("planImport merges per 5.5", () => {
   assert.deepEqual(larger.localItems["stats:a.com"], { blockedCount: 7, lastBlockedAt: 300 });
   const sum = planImport(records, stats, [file], "sum");
   assert.deepEqual(sum.localItems["stats:a.com"], { blockedCount: 12, lastBlockedAt: 300 });
+});
+
+test("planImport lets a newer active file record revive an archived one, with no x key", () => {
+  const existing = rec("a.com", "archived", { addedAt: 100, updatedAt: 200, archivedAt: 200 });
+  const file = entry("a.com", { addedAt: 100, updatedAt: 400 });
+  const plan = planImport([existing], new Map(), [file], "larger");
+  assert.equal(plan.syncItems["d:a.com"].s, "a");
+  assert.equal("x" in plan.syncItems["d:a.com"], false);
 });
 
 test("planImport caps a sum at the largest safe integer", () => {

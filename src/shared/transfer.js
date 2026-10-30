@@ -36,7 +36,9 @@ export function buildExport(records, stats, { now, version }) {
 }
 
 export function exportFilename(now) {
-  return `reddit-domain-blocker-${new Date(now).toISOString().slice(0, 10)}.json`;
+  const d = new Date(now);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `reddit-domain-blocker-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.json`;
 }
 
 function isObject(value) {
@@ -101,6 +103,7 @@ export function parseImport(text) {
       skipped.push({ index, domain, reason });
     };
     if (!isObject(raw)) return skip("invalid-record");
+    if (typeof raw.domain !== "string") return skip("invalid-domain");
     const normalized = normalizeInput(raw.domain);
     if (!normalized.ok) return skip(normalized.reason === "protected" ? "protected" : "invalid-domain");
     const entry = parseEntry(raw, normalized.domain);

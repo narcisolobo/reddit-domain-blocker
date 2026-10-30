@@ -894,6 +894,7 @@ test("Export downloads every record as JSON and announces it", async () => {
   assert.deepEqual(data.domains.map((d) => d.domain), ["a.com", "b.com"]);
   assert.equal(data.domains[0].blockedCount, 3);
   assert.equal(document.getElementById("status").textContent, "Exported 2 domains");
+  await settle();
   assert.deepEqual(revoked, ["blob:fake-1"]);
   assert.equal(document.activeElement, button);
   assert.equal(document.querySelector("a[download]"), null);
@@ -945,6 +946,8 @@ test("picking a file shows the review with counts and skips, and focuses its hea
   assert.equal(heading.getAttribute("tabindex"), "-1");
   assert.equal(document.activeElement, heading);
   assert.equal(root.querySelector("section").getAttribute("aria-labelledby"), "import-heading");
+  assert.equal(root.querySelector("section").getAttribute("aria-describedby"), "import-summary");
+  assert.equal(root.querySelector("#import-summary").textContent, "1 new, 1 merged, 2 skipped");
   assert.equal(root.querySelector("p").textContent, "1 new, 1 merged, 2 skipped");
   const lines = [...root.querySelectorAll("li")].map((li) => li.textContent);
   assert.deepEqual(lines, ["reddit.com is a Reddit domain", "not a domain isn't a valid domain"]);
@@ -1071,12 +1074,24 @@ test("messageFor covers the import outcomes", () => {
   assert.equal(messageFor({ ok: false, reason: "too-large", over: 2049 }).text, "That import would go over Chrome's sync storage limit by about 3 KB. Nothing was imported.");
   assert.equal(messageFor({ ok: false, reason: "file-too-big" }).text, "That file is too large to be an export. Nothing was imported.");
   assert.equal(messageFor({ ok: false, reason: "nothing-to-import", skipped: 2 }).kind, "error");
+  assert.equal(messageFor({ ok: false, reason: "nothing-to-import", skipped: 2 }).text, "Nothing to import: every entry in that file was skipped.");
+  assert.equal(messageFor({ ok: false, reason: "nothing-to-import", skipped: 0 }).text, "That file has no domains in it. Nothing was imported.");
+  assert.equal(messageFor({ ok: false, reason: "import-quota" }).text, "Chrome refused to save the import. Nothing was imported. Try again in a minute.");
+});
+
+test("an export with no domains says so instead of blaming skips", async () => {
+  const { document } = await setup();
+  pick(document, exportJson([]));
+  await settle();
+  assert.equal(document.getElementById("action-error").textContent, "That file has no domains in it. Nothing was imported.");
+  assert.equal(review(document).innerHTML, "");
 });
 
 test("skipText reads naturally and the list stops at 10", () => {
   assert.equal(skipText({ index: 0, domain: "a.com", reason: "duplicate" }), "a.com appears more than once");
   assert.equal(skipText({ index: 4, domain: null, reason: "invalid-record" }), "Entry 5 has missing or invalid fields");
   assert.equal(skipText({ index: 0, domain: "x", reason: "invalid-domain" }), "x isn't a valid domain");
+  assert.equal(skipText({ index: 0, domain: "a".repeat(300), reason: "invalid-domain" }), `${"a".repeat(80)}… isn't a valid domain`);
   const { document } = page();
   const root = document.getElementById("import-review");
   const skipped = Array.from({ length: 13 }, (_, i) => ({ index: i, domain: `d${i}`, reason: "protected" }));

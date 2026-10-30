@@ -12,7 +12,7 @@ const CODE_TO_SOURCE = Object.fromEntries(
 
 // The valid JS Date range; anything beyond it would throw in toISOString().
 const MAX_TIME = 8.64e15;
-export const validTime =(n) => Number.isFinite(n) && Math.abs(n) <= MAX_TIME;
+export const validTime = (n) => Number.isFinite(n) && Math.abs(n) <= MAX_TIME;
 
 export function keyFor(domain) {
   return KEY_PREFIX + domain;

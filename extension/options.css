@@ -152,6 +152,7 @@ td.actions { text-align: right; }
 .btn-small { padding: 0.25rem 0.625rem; font-size: 0.875rem; min-height: 1.75rem; }
 
 #import-review section { margin-top: 1.5rem; padding: 1rem; border: 1px solid var(--rule); border-radius: 6px; }
+#import-review li { overflow-wrap: anywhere; }
 #import-review h2 { margin-top: 0; }
 #import-review fieldset { border: 0; margin: 1rem 0 0; padding: 0; }
 #import-review legend { padding: 0; font-weight: 600; }

@@ -10,8 +10,11 @@ const SKIP_TEXT = {
   duplicate: "appears more than once",
 };
 
+const MAX_DOMAIN_SHOWN = 80;
+
 export function skipText(skip) {
-  return `${skip.domain ?? `Entry ${skip.index + 1}`} ${SKIP_TEXT[skip.reason]}`;
+  const domain = skip.domain?.length > MAX_DOMAIN_SHOWN ? `${skip.domain.slice(0, MAX_DOMAIN_SHOWN)}…` : skip.domain;
+  return `${domain ?? `Entry ${skip.index + 1}`} ${SKIP_TEXT[skip.reason]}`;
 }
 
 function el(doc, tag, text) {
@@ -51,10 +54,13 @@ export function renderImportReview(root, { added, merged, skipped }, { onImport,
   const doc = root.ownerDocument;
   const section = el(doc, "section");
   section.setAttribute("aria-labelledby", "import-heading");
+  section.setAttribute("aria-describedby", "import-summary");
   const heading = el(doc, "h2", "Review import");
   heading.id = "import-heading";
   heading.tabIndex = -1;
-  section.append(heading, el(doc, "p", `${added} new, ${merged} merged, ${skipped.length} skipped`));
+  const summary = el(doc, "p", `${added} new, ${merged} merged, ${skipped.length} skipped`);
+  summary.id = "import-summary";
+  section.append(heading, summary);
 
   if (skipped.length > 0) {
     const list = el(doc, "ul");

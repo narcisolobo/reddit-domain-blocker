@@ -22,7 +22,7 @@ test("parseStats accepts valid values and rejects the rest", () => {
   assert.deepEqual(parseStats({ blockedCount: 3, lastBlockedAt: 5 }), { blockedCount: 3, lastBlockedAt: 5 });
   assert.deepEqual(parseStats({ blockedCount: 0, lastBlockedAt: null }), { blockedCount: 0, lastBlockedAt: null });
   for (const bad of [null, 3, [], { blockedCount: -1, lastBlockedAt: null }, { blockedCount: 1.5, lastBlockedAt: null },
-    { blockedCount: "3", lastBlockedAt: null }, { blockedCount: 1, lastBlockedAt: "x" }, { blockedCount: NaN, lastBlockedAt: 1 }])
+    { blockedCount: "3", lastBlockedAt: null }, { blockedCount: 1, lastBlockedAt: "x" }, { blockedCount: NaN, lastBlockedAt: 1 }, { blockedCount: 1, lastBlockedAt: 1e20 }])
     assert.equal(parseStats(bad), null);
 });
 

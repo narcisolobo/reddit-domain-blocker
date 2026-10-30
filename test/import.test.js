@@ -92,11 +92,34 @@ test("a failed sync write restores the stats that were written", async () => {
   areas.sync.failNextSet(new Error("QUOTA_BYTES quota exceeded"));
   const text = file([entry("a.com", { blockedCount: 4, lastBlockedAt: T }), entry("new.com", { blockedCount: 2 })]);
   const r = await importDomains(areas, text, "sum");
-  assert.deepEqual(r, { ok: false, reason: "quota" });
+  assert.deepEqual(r, { ok: false, reason: "import-quota" });
   const local = await areas.local.get(null);
   assert.deepEqual(local["stats:a.com"], { blockedCount: 5, lastBlockedAt: 300 });
   assert.equal("stats:new.com" in local, false);
   assert.equal("d:new.com" in (await areas.sync.get(null)), false);
+});
+
+test("a failed local write is import-quota and leaves sync untouched", async () => {
+  areas.local.failNextSet(new Error("QUOTA_BYTES quota exceeded"));
+  const r = await importDomains(areas, file([entry("new.com", { blockedCount: 2 })]), "larger");
+  assert.deepEqual(r, { ok: false, reason: "import-quota" });
+  assert.deepEqual(await areas.sync.get(null), {});
+});
+
+test("a failed stats restore is logged and the original reason is still returned", async (t) => {
+  await areas.sync.set({ "d:a.com": stored() });
+  await areas.local.set({ "stats:a.com": { blockedCount: 5, lastBlockedAt: 300 } });
+  const log = t.mock.method(console, "error", () => {});
+  const realSet = areas.local.set.bind(areas.local);
+  let calls = 0;
+  areas.local.set = async (obj) => {
+    if (++calls === 2) throw new Error("restore failed");
+    return realSet(obj);
+  };
+  areas.sync.failNextSet(new Error("QUOTA_BYTES quota exceeded"));
+  const r = await importDomains(areas, file([entry("a.com", { blockedCount: 9, updatedAt: "2027-01-01T00:00:00.000Z" })]), "larger");
+  assert.deepEqual(r, { ok: false, reason: "import-quota" });
+  assert.equal(log.mock.callCount(), 1);
 });
 
 test("unreadable text, a bad countMode, and an all-skipped file are refused", async () => {
@@ -108,6 +131,7 @@ test("unreadable text, a bad countMode, and an all-skipped file are refused", as
     reason: "nothing-to-import",
     skipped: 2,
   });
+  assert.deepEqual(await importDomains(areas, file([]), "larger"), { ok: false, reason: "nothing-to-import", skipped: 0 });
 });
 
 test("the worker plans against current storage, not the preview", async () => {
