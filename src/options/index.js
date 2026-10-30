@@ -10,6 +10,7 @@ export async function init(env) {
   const addButton = document.getElementById("add-button");
   const statusEl = document.getElementById("status");
   const errorEl = document.getElementById("error");
+  const actionErrorEl = document.getElementById("action-error");
   const listEl = document.getElementById("list");
   const archivedEl = document.getElementById("archived-list");
   const archivedHeading = document.getElementById("archived-heading");
@@ -17,20 +18,21 @@ export async function init(env) {
   addButton.innerHTML = `${icon("plus")}<span>Add</span>`;
   errorEl.id = "error";
 
-  // Only the Add form's errors (`field`) mark the domain input invalid.
+  // One message shows at a time. The Add form's errors (`field`) sit under the
+  // input and mark it invalid; everything else goes in the region under the title.
   function show(message, { field = false } = {}) {
-    if (message.kind === "error") {
-      statusEl.textContent = "";
+    statusEl.textContent = "";
+    errorEl.textContent = "";
+    actionErrorEl.textContent = "";
+    if (message.kind === "error" && field) {
       errorEl.textContent = message.text;
-      if (field) {
-        input.setAttribute("aria-invalid", "true");
-        input.setAttribute("aria-describedby", errorEl.id);
-      }
-    } else {
-      errorEl.textContent = "";
-      statusEl.textContent = message.text;
-      clearInvalid();
+      input.setAttribute("aria-invalid", "true");
+      input.setAttribute("aria-describedby", errorEl.id);
+      return;
     }
+    clearInvalid();
+    if (message.kind === "error") actionErrorEl.textContent = message.text;
+    else statusEl.textContent = message.text;
   }
 
   function clearInvalid() {
@@ -200,7 +202,7 @@ export async function init(env) {
       // Already gone (e.g. deleted from another tab) is the outcome we wanted.
       const message =
         result?.ok === false && result.reason === "not-found"
-          ? { kind: "status", text: `Deleted ${domain} permanently` }
+          ? messageFor({ ok: true, domain, outcome: "deleted" })
           : messageFor(result);
       confirming = null;
       show(message);

@@ -140,6 +140,21 @@ test("page shell: lang, title, one h1, main, label for input, live regions", () 
   assert.equal(document.querySelectorAll("script:not([src])").length, 0);
 });
 
+test("page messages sit between the title and the form; field errors stay under the input", () => {
+  const { document } = page();
+  const h1 = document.querySelector("h1");
+  const form = document.getElementById("add-form");
+  const notices = document.querySelector(".notices");
+  assert.equal(h1.nextElementSibling, notices);
+  assert.equal(notices.nextElementSibling, form);
+  assert.equal(document.getElementById("status").getAttribute("role"), "status");
+  assert.equal(document.getElementById("action-error").getAttribute("role"), "alert");
+  assert.equal(document.getElementById("status").parentElement, notices);
+  assert.equal(document.getElementById("action-error").parentElement, notices);
+  assert.equal(document.getElementById("error").getAttribute("role"), "alert");
+  assert.equal(form.nextElementSibling, document.getElementById("error"));
+});
+
 test("submitting sends domain/add with source options; success clears input and keeps focus", async () => {
   const { chrome, dom, document } = await setup();
   const sent = [];
@@ -184,7 +199,7 @@ test("a rejected input sets aria-invalid and aria-describedby, announced in role
   input.value = "localhost";
   document.querySelector("form button[type=submit]").click();
   await settle();
-  const alert = document.querySelector('[role="alert"]');
+  const alert = document.getElementById("error");
   assert.equal(alert.textContent, "That needs a full domain, like example.com.");
   assert.equal(input.getAttribute("aria-invalid"), "true");
   assert.equal(input.getAttribute("aria-describedby"), alert.id);
@@ -208,7 +223,7 @@ test("a later success clears invalid state and empties the alert region", async 
   document.querySelector("form button[type=submit]").click();
   await settle();
   assert.equal(input.hasAttribute("aria-invalid"), false);
-  assert.equal(document.querySelector('[role="alert"]').textContent, "");
+  assert.equal(document.getElementById("error").textContent, "");
   assert.equal(document.querySelector('[role="status"]').textContent, "Added example.com");
 });
 
@@ -220,7 +235,7 @@ test("a rejected sendMessage shows the generic error, no uncaught exception", as
   document.getElementById("domain-input").value = "example.com";
   document.querySelector("form button[type=submit]").click();
   await settle();
-  assert.equal(document.querySelector('[role="alert"]').textContent, "Something went wrong. Please try again.");
+  assert.equal(document.getElementById("error").textContent, "Something went wrong. Please try again.");
   assert.equal(document.getElementById("domain-input").getAttribute("aria-invalid"), "true");
 });
 
@@ -631,9 +646,49 @@ test("a failed delete shows role=alert and returns focus to Delete", async () =>
   chrome.runtime.sendMessage = async () => ({ ok: false, domain: "old.com", reason: "error" });
   q(document, "Confirm delete of old.com").click();
   await settle();
-  assert.ok(document.querySelector('[role="alert"]').textContent.length > 0);
+  assert.ok(document.getElementById("action-error").textContent.length > 0);
   assert.equal(document.querySelector('[role="group"]'), null);
   assert.equal(document.activeElement, q(document, "Delete permanently: old.com"));
+});
+
+test("a row-action error shows at the top, not under the input", async () => {
+  const { chrome, document } = await setup({ "d:a.com": stored("active") });
+  chrome.runtime.sendMessage = async () => ({ ok: false, reason: "error" });
+  q(document, "Remove a.com").click();
+  await settle();
+  assert.equal(document.getElementById("action-error").textContent, "Something went wrong. Please try again.");
+  assert.equal(document.getElementById("error").textContent, "");
+  assert.equal(document.getElementById("status").textContent, "");
+});
+
+test("a row-action error replaces a field error and clears the input's invalid state", async () => {
+  const { chrome, document } = await setup({ "d:a.com": stored("active") });
+  const input = document.getElementById("domain-input");
+  input.value = "localhost";
+  document.querySelector("form button[type=submit]").click();
+  await settle();
+  assert.equal(input.getAttribute("aria-invalid"), "true");
+  chrome.runtime.sendMessage = async () => ({ ok: false, reason: "error" });
+  q(document, "Remove a.com").click();
+  await settle();
+  assert.equal(document.getElementById("error").textContent, "");
+  assert.equal(input.hasAttribute("aria-invalid"), false);
+  assert.equal(input.hasAttribute("aria-describedby"), false);
+  assert.ok(document.getElementById("action-error").textContent.length > 0);
+});
+
+test("a field error clears an earlier row-action error", async () => {
+  const { chrome, document } = await setup({ "d:a.com": stored("active") });
+  const original = chrome.runtime.sendMessage.bind(chrome.runtime);
+  chrome.runtime.sendMessage = async () => ({ ok: false, reason: "error" });
+  q(document, "Remove a.com").click();
+  await settle();
+  chrome.runtime.sendMessage = original;
+  document.getElementById("domain-input").value = "localhost";
+  document.querySelector("form button[type=submit]").click();
+  await settle();
+  assert.equal(document.getElementById("action-error").textContent, "");
+  assert.equal(document.getElementById("error").textContent, "That needs a full domain, like example.com.");
 });
 
 test("no window.confirm is called", async () => {
@@ -686,7 +741,7 @@ test("a second Confirm click while the delete is in flight is ignored", async ()
   await settle();
   assert.equal(sent.filter((m) => m.type === "domain/delete").length, 1);
   assert.equal(document.querySelector('[role="status"]').textContent, "Deleted old.com permanently");
-  assert.equal(document.querySelector('[role="alert"]').textContent, "");
+  assert.equal(document.getElementById("action-error").textContent, "");
   assert.equal(document.getElementById("domain-input").hasAttribute("aria-invalid"), false);
 });
 
@@ -715,7 +770,7 @@ test("a not-found delete result is treated as already gone", async () => {
   q(document, "Confirm delete of old.com").click();
   await settle();
   assert.equal(document.querySelector('[role="status"]').textContent, "Deleted old.com permanently");
-  assert.equal(document.querySelector('[role="alert"]').textContent, "");
+  assert.equal(document.getElementById("action-error").textContent, "");
 });
 
 test("a double Restore sends one message", async () => {
@@ -734,7 +789,7 @@ test("a failed Remove, Restore or Delete leaves the domain input valid", async (
   const input = document.getElementById("domain-input");
   chrome.runtime.sendMessage = async () => ({ ok: false, reason: "error" });
   const check = () => {
-    assert.ok(document.querySelector('[role="alert"]').textContent.length > 0);
+    assert.ok(document.getElementById("action-error").textContent.length > 0);
     assert.equal(input.hasAttribute("aria-invalid"), false);
     assert.equal(input.hasAttribute("aria-describedby"), false);
   };
