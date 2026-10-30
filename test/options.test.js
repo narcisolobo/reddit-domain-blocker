@@ -56,6 +56,7 @@ test("messageFor covers every ok outcome", () => {
   assert.deepEqual(messageFor({ ok: true, domain: "example.com", outcome: "exists" }), { kind: "status", text: "example.com is already on the list" });
   assert.deepEqual(messageFor({ ok: true, domain: "example.com", outcome: "archived" }), { kind: "status", text: "Removed example.com" });
   assert.deepEqual(messageFor({ ok: true, domain: "example.com", outcome: "already-archived" }), { kind: "status", text: "Removed example.com" });
+  assert.deepEqual(messageFor({ ok: true, domain: "example.com", outcome: "deleted" }), { kind: "status", text: "Deleted example.com permanently" });
 });
 
 test("messageFor covers every failure reason with kind error", () => {
@@ -72,6 +73,7 @@ test("messageFor covers every failure reason with kind error", () => {
     assert.deepEqual(messageFor({ ok: false, reason }), { kind: "error", text });
   }
   assert.deepEqual(messageFor({ ok: false, reason: "not-found", domain: "example.com" }), { kind: "error", text: "example.com isn't on the list." });
+  assert.deepEqual(messageFor({ ok: false, reason: "not-archived", domain: "example.com" }), { kind: "error", text: "example.com is blocked again, so it wasn't deleted." });
 });
 
 test("messageFor is total: unknown reason, missing reason, non-objects", () => {

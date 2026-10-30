@@ -23,6 +23,8 @@ export function messageFor(result) {
         return { kind: "status", text: `Restored ${domain}` };
       case "exists":
         return { kind: "status", text: `${domain} is already on the list` };
+      case "deleted":
+        return { kind: "status", text: `Deleted ${domain} permanently` };
       case "archived":
       case "already-archived":
         return { kind: "status", text: `Removed ${domain}` };
@@ -33,6 +35,9 @@ export function messageFor(result) {
   if (result.ok === false) {
     if (result.reason === "not-found") {
       return { kind: "error", text: `${domain || "That domain"} isn't on the list.` };
+    }
+    if (result.reason === "not-archived") {
+      return { kind: "error", text: `${domain || "That domain"} is blocked again, so it wasn't deleted.` };
     }
     if (typeof result.reason === "string" && Object.hasOwn(ERROR_TEXT, result.reason)) {
       return { kind: "error", text: ERROR_TEXT[result.reason] };
