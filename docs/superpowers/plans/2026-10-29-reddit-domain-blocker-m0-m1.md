@@ -476,8 +476,8 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
 
 **Interfaces:** none.
 
-- [ ] **Step 1: Build and load.** `npm test` → all pass. `npm run build`. Load `extension/` unpacked at `chrome://extensions` (ask the user to do this and enable it if the Chrome tools cannot).
-- [ ] **Step 2: Walk the M1 acceptance items** from the spec on live Reddit, recording pass or fail and any selector fixes in `NOTES.md`:
+- [x] **Step 1: Build and load.** `npm test` → all pass. `npm run build`. Load `extension/` unpacked at `chrome://extensions` (ask the user to do this and enable it if the Chrome tools cannot).
+- [x] **Step 2: Walk the M1 acceptance items** from the spec on live Reddit, recording pass or fail and any selector fixes in `NOTES.md`:
   - **1:** with `thedailybeast.com` added via the options page, stubs appear on the home feed, a subreddit, and a profile (not search results, which are deliberately left alone), on both old and new Reddit; a post's own page hides nothing.
   - **2:** a `www.` and a subdomain link are hidden; a lookalike host is not.
   - **3:** scrolling loads more posts that are hidden without breaking scroll.
@@ -486,9 +486,9 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - **9:** the stub follows Reddit's theme when the user switches it opposite to the OS; the options page follows the OS.
   - **12:** on new Reddit, if a post opens in an overlay above a listing (per NOTES), existing stubs stay and nothing new hides; closing it rescans.
   - **14:** inspect a hidden post in DevTools: the node is still in the page, marked `data-rdb-hidden`; removing the marker and the stub shows it.
-- [ ] **Step 3: Measure the flash** (spec 4.2): on cold load and on infinite scroll, on both sites, record whether blocked posts visibly paint before hiding (use a screen recording or a Performance trace via the Chrome tools). Record the result and, if posts do flash, note that the pre-paint step in 4.2 is a candidate for M4.
-- [ ] **Step 4: Fix** any failure by adding a failing test first in the owning task's test file, then the fix, then re-run `npm test`.
-- [ ] **Step 5: Commit** `docs: record M1 verification results`.
+- [x] **Step 3: Measure the flash** (spec 4.2): on cold load and on infinite scroll, on both sites, record whether blocked posts visibly paint before hiding (use a screen recording or a Performance trace via the Chrome tools). Record the result and, if posts do flash, note that the pre-paint step in 4.2 is a candidate for M4.
+- [x] **Step 4: Fix** any failure by adding a failing test first in the owning task's test file, then the fix, then re-run `npm test`.
+- [x] **Step 5: Commit** `docs: record M1 verification results`.
 
 ---
 
