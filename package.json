@@ -8,9 +8,11 @@
   "scripts": {
     "test": "node --test",
     "build": "node scripts/build.js",
-    "gen-icons": "node scripts/gen-icons.js"
+    "gen-icons": "node scripts/gen-icons.js",
+    "gen-app-icons": "node scripts/gen-app-icons.js"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@tabler/icons": "^3.0.0",
     "axe-core": "4.10.2",
     "esbuild": "^0.25.0",

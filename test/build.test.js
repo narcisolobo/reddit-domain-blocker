@@ -13,3 +13,17 @@ test("build ships THIRD_PARTY_LICENSES inside extension/", () => {
   assert.match(text, /MIT/);
   assert.match(text, /Tabler/);
 });
+
+test("manifest points the extension and toolbar icons at PNGs of the declared sizes", () => {
+  const manifest = JSON.parse(readFileSync("extension/manifest.json", "utf8"));
+  const sizes = ["16", "32", "48", "128"];
+  assert.deepEqual(Object.keys(manifest.icons), sizes);
+  assert.deepEqual(manifest.action.default_icon, manifest.icons);
+  for (const size of sizes) {
+    const png = readFileSync(`extension/${manifest.icons[size]}`);
+    assert.equal(png.toString("latin1", 1, 4), "PNG");
+    // IHDR width and height, big-endian, at bytes 16-23.
+    assert.equal(png.readUInt32BE(16), Number(size));
+    assert.equal(png.readUInt32BE(20), Number(size));
+  }
+});
