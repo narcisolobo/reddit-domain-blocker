@@ -72,9 +72,13 @@ Run by the owner in their own Chrome with `extension/` loaded unpacked (the auto
 
 | Spec item | Result |
 |---|---|
-| 1 Hide in place, subreddit listing (r/politics), new and old Reddit | Pass |
-| 1 Home feed, search, profile `/submitted`, post page shows nothing hidden | Not yet checked |
+| 1 Hide in place: home feed, subreddit listing, profile `/submitted`, new and old Reddit; a post's own page hides nothing | Pass |
+| 1 Search results | **Fail**: blocked posts are not hidden on search (markup to be captured, adapter fix pending) |
 | 2 Matching, new Reddit (`content-href` edited): `www.newsweek.com`, `sub.newsweek.com` hidden; `notnewsweek.com`, `newsweek.com.evil.com`, `/r/news/comments/abc/x/`, `javascript:alert(1)`, `https://example.org/x` not hidden | Pass (all 7) |
 | 2 Matching, old Reddit (`data-url` edited): same 7 cases | Pass (all 7) |
-| 9 Theme: new Reddit stub rendered in the dark theme, old Reddit stub in the light theme (screenshots) | Partly checked: switching Reddit's theme opposite to the OS not yet done |
-| 3 Infinite scroll, 4 live update across tabs, 5 Show post / Unblock across tabs, 12 overlay, 14 DevTools marker, flash measurement | Not yet checked |
+| 3 Infinite scroll hides new posts | Pass |
+| 4 Adding a domain hides posts in all open tabs, no reload | Pass |
+| 5 Show post reveals one post; Unblock domain restores in every tab | Pass |
+| 14 DevTools: the hidden post is still in the page, marked `data-rdb-hidden` on the `shreddit-post` element (the `article` wrapper is not marked and has no `aria-label`); the stub is a sibling inserted before it | Pass (owner pasted the element) |
+| 9 Theme: new Reddit stub dark, old Reddit stub light (screenshots); switch opposite to OS | Switch opposite to OS: owner reported pass |
+| 12 Overlay above a listing, flash measurement, console errors, Show-post click bubbling | Not yet checked |
