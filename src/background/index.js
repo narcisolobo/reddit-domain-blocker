@@ -7,7 +7,7 @@ export function init(chromeApi) {
 
   chromeApi.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     queue = queue
-      .then(() => handleMessage(msg, chromeApi.storage.sync))
+      .then(() => handleMessage(msg, { sync: chromeApi.storage.sync, local: chromeApi.storage.local }))
       .then(
         (res) => sendResponse(res),
         () => sendResponse({ ok: false, reason: "error" }),

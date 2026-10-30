@@ -1,4 +1,5 @@
 import { normalizeInput } from "../shared/domain.js";
+import { recordHits } from "./stats.js";
 import { keyFor, toStored, fromStored, recordsFromItems } from "../shared/records.js";
 
 const SOURCES = ["options", "context-menu", "stub", "import"];
@@ -64,12 +65,14 @@ export async function listRecords(area) {
   return recordsFromItems(await area.get(null));
 }
 
-export async function handleMessage(msg, area, now = Date.now()) {
+export async function handleMessage(msg, areas, now = Date.now()) {
   switch (msg?.type) {
     case "domain/add":
-      return addDomain(area, msg.input, msg.source, now);
+      return addDomain(areas.sync, msg.input, msg.source, now);
     case "domain/archive":
-      return archiveDomain(area, msg.domain, now);
+      return archiveDomain(areas.sync, msg.domain, now);
+    case "stats/hits":
+      return recordHits(areas, msg.hits, now);
     default:
       return { ok: false, reason: "error" };
   }

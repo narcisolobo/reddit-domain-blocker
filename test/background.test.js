@@ -41,3 +41,14 @@ test("an unexpected handler failure responds with an error and does not break th
   const ok = await fake.runtime.dispatchMessage({ type: "nope" });
   assert.deepEqual(ok, { ok: false, reason: "error" });
 });
+
+test("concurrent stats/hits from two tabs both land", async () => {
+  const fake = createFakeChrome();
+  init(fake);
+  await fake.storage.sync.set({ "d:a.com": { s: "a", c: 1, u: 1, o: "o" } });
+  await Promise.all([
+    fake.runtime.dispatchMessage({ type: "stats/hits", hits: { "a.com": 2 } }),
+    fake.runtime.dispatchMessage({ type: "stats/hits", hits: { "a.com": 3 } }),
+  ]);
+  assert.equal((await fake.storage.local.get("stats:a.com"))["stats:a.com"].blockedCount, 5);
+});

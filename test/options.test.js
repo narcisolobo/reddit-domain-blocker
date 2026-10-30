@@ -39,7 +39,7 @@ async function setup(items = {}, { changeDelay = 0 } = {}) {
       add((changes, area) => setTimeout(() => fn(changes, area), changeDelay));
   }
   await chrome.storage.sync.set(items);
-  chrome.runtime.setMessageHandler((msg) => handleMessage(msg, chrome.storage.sync));
+  chrome.runtime.setMessageHandler((msg) => handleMessage(msg, { sync: chrome.storage.sync, local: chrome.storage.local }));
   const { dom, document } = page();
   await init({ chrome, document });
   return { chrome, dom, document };

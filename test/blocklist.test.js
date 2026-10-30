@@ -4,8 +4,11 @@ import { createFakeChrome } from "./helpers/fake-chrome.js";
 import { addDomain, archiveDomain, listRecords, handleMessage } from "../src/background/blocklist.js";
 
 let area;
+let areas;
 beforeEach(() => {
-  area = createFakeChrome().storage.sync;
+  const fake = createFakeChrome();
+  area = fake.storage.sync;
+  areas = { sync: fake.storage.sync, local: fake.storage.local };
 });
 
 const stored = async (domain) => (await area.get("d:" + domain))["d:" + domain];
@@ -95,12 +98,12 @@ test("listRecords returns all stored records", async () => {
 });
 
 test("handleMessage routes add and archive and rejects unknown types", async () => {
-  const added = await handleMessage({ type: "domain/add", input: "a.com", source: "options" }, area, 1000);
+  const added = await handleMessage({ type: "domain/add", input: "a.com", source: "options" }, areas, 1000);
   assert.deepEqual(added, { ok: true, domain: "a.com", outcome: "added" });
-  const archived = await handleMessage({ type: "domain/archive", domain: "a.com" }, area, 2000);
+  const archived = await handleMessage({ type: "domain/archive", domain: "a.com" }, areas, 2000);
   assert.deepEqual(archived, { ok: true, domain: "a.com", outcome: "archived" });
-  assert.deepEqual(await handleMessage({ type: "bogus" }, area), { ok: false, reason: "error" });
-  assert.deepEqual(await handleMessage(undefined, area), { ok: false, reason: "error" });
+  assert.deepEqual(await handleMessage({ type: "bogus" }, areas), { ok: false, reason: "error" });
+  assert.deepEqual(await handleMessage(undefined, areas), { ok: false, reason: "error" });
 });
 
 test("missing or unknown source is rejected and writes nothing", async () => {
@@ -108,7 +111,7 @@ test("missing or unknown source is rejected and writes nothing", async () => {
     assert.deepEqual(await addDomain(area, "a.com", source, 1), { ok: false, reason: "error" });
     assert.deepEqual(await area.get(null), {});
   }
-  const viaMessage = await handleMessage({ type: "domain/add", input: "a.com" }, area, 1);
+  const viaMessage = await handleMessage({ type: "domain/add", input: "a.com" }, areas, 1);
   assert.deepEqual(viaMessage, { ok: false, reason: "error" });
   assert.deepEqual(await area.get(null), {});
 });
@@ -127,7 +130,7 @@ test("failed archive leaves the active record intact", async () => {
 });
 
 test("handleMessage rejects null and string messages", async () => {
-  assert.deepEqual(await handleMessage(null, area), { ok: false, reason: "error" });
-  assert.deepEqual(await handleMessage("domain/add", area), { ok: false, reason: "error" });
+  assert.deepEqual(await handleMessage(null, areas), { ok: false, reason: "error" });
+  assert.deepEqual(await handleMessage("domain/add", areas), { ok: false, reason: "error" });
   assert.deepEqual(await area.get(null), {});
 });
