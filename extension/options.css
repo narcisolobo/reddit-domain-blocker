@@ -159,6 +159,28 @@ td.actions { text-align: right; }
 #import-review label { display: block; margin-top: 0.5rem; }
 .review-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
 
+/* Stacked rows at narrow widths. The thead stays in the accessibility tree. */
+.cell-label { display: none; }
+
+@media (max-width: 32rem) {
+  table.domains, tbody, tr, td { display: block; }
+  thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+  }
+  tr { padding: 0.875rem 0; border-bottom: 1px solid var(--rule); }
+  td, th:not(:last-child), td:not(:last-child) { padding: 0.125rem 0; border-bottom: 0; }
+  .cell-label { display: inline; color: var(--muted); margin-right: 0.5rem; }
+  td.count { text-align: left; padding-left: 0; padding-right: 0; }
+  td.actions { white-space: normal; text-align: left; padding-top: 0.5rem; }
+  td.domain { overflow-wrap: anywhere; }
+}
+
 /* Small screens: icon-only buttons keep their aria-label and title. The
    "Really delete?" text is not a button label and stays visible. */
 @media (max-width: 412px) {

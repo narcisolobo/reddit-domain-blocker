@@ -10,6 +10,9 @@ import { handleMessage } from "../src/background/blocklist.js";
 
 const HTML = readFileSync(new URL("../extension/options.html", import.meta.url), "utf8");
 
+// A data cell's value, without its stacked-layout label.
+const cellValue = (td) => td.textContent.replace(td.querySelector(".cell-label")?.textContent ?? "", "");
+
 function rec(domain, status = "active") {
   return {
     domain,
@@ -88,13 +91,13 @@ test("messageFor is total: unknown reason, missing reason, non-objects", () => {
   assert.deepEqual(messageFor("x"), generic);
 });
 
-test("renderList shows active domains only, sorted, with caption and th scope=col", () => {
+test("renderList shows active domains only, sorted, named by heading and th scope=col", () => {
   const { document } = page();
   const root = document.getElementById("list");
   renderList(root, [rec("zeta.com"), rec("old.com", "archived"), rec("alpha.com")], new Map(), { onRemove() {} });
-  const cells = [...root.querySelectorAll("td.domain")].map((td) => td.textContent);
+  const cells = [...root.querySelectorAll("td.domain")].map(cellValue);
   assert.deepEqual(cells, ["alpha.com", "zeta.com"]);
-  assert.equal(root.querySelector("caption").textContent, "Blocked domains");
+  assert.equal(root.querySelector("table").getAttribute("aria-labelledby"), "active-heading");
   const ths = [...root.querySelectorAll("th")];
   assert.equal(ths.length, 3);
   assert.ok(ths.every((th) => th.getAttribute("scope") === "col"));
@@ -172,7 +175,7 @@ test("submitting sends domain/add with source options; success clears input and 
   assert.equal(document.getElementById("error").textContent, "");
   assert.equal(input.value, "");
   assert.equal(document.activeElement, input);
-  assert.deepEqual([...document.querySelectorAll("td.domain")].map((t) => t.textContent), ["thedailybeast.com"]);
+  assert.deepEqual([...document.querySelectorAll("td.domain")].map(cellValue), ["thedailybeast.com"]);
   dom.window.close();
 });
 
@@ -272,7 +275,7 @@ test("an external storage change re-renders the list without a reload", async ()
   assert.equal(document.querySelector("table"), null);
   await chrome.storage.sync.set({ "d:elsewhere.com": stored() });
   await settle();
-  assert.deepEqual([...document.querySelectorAll("td.domain")].map((t) => t.textContent), ["elsewhere.com"]);
+  assert.deepEqual([...document.querySelectorAll("td.domain")].map(cellValue), ["elsewhere.com"]);
 });
 
 test("a malformed record in storage is ignored", async () => {
@@ -283,7 +286,7 @@ test("a malformed record in storage is ignored", async () => {
     "d:nul.com": null,
     "other": { s: "a" },
   });
-  assert.deepEqual([...document.querySelectorAll("td.domain")].map((t) => t.textContent), ["good.com"]);
+  assert.deepEqual([...document.querySelectorAll("td.domain")].map(cellValue), ["good.com"]);
 });
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -354,14 +357,14 @@ test("a slower earlier storage read does not overwrite a newer one", async () =>
   await settle();
   releaseSlow();
   await settle();
-  const domains = [...document.querySelectorAll("td.domain")].map((t) => t.textContent);
+  const domains = [...document.querySelectorAll("td.domain")].map(cellValue);
   assert.deepEqual(domains, ["fast.com", "old.com", "slow.com"]);
 });
 
 // ---- M2 Task 4: counts, Archived section, Restore ----
 
 const stat = (n) => ({ blockedCount: n, lastBlockedAt: 5 });
-const countOf = (document, d) => document.querySelector(`[data-count-for="${d}"]`).textContent;
+const countOf = (document, d) => document.querySelector(`[data-count-for="${d}"] .count-value`).textContent;
 
 test("active table shows Posts hidden from local stats, 0 when missing", async () => {
   const { chrome, document } = await setup({ "d:a.com": stored(), "d:b.com": stored() });
@@ -372,10 +375,10 @@ test("active table shows Posts hidden from local stats, 0 when missing", async (
   assert.equal(document.querySelector('td.count[data-count-for="a.com"]').className, "count");
 });
 
-test("archived table: caption, th scope=col, time datetime, counts, Restore button names", async () => {
+test("archived table: heading name, th scope=col, time datetime, counts, Restore button names", async () => {
   const { document } = await setup({ "d:old.com": stored("archived") });
   const root = document.getElementById("archived-list");
-  assert.equal(root.querySelector("caption").textContent, "Archived domains");
+  assert.equal(root.querySelector("table").getAttribute("aria-labelledby"), "archived-heading");
   const ths = [...root.querySelectorAll("th")];
   assert.deepEqual(ths.map((t) => t.textContent), ["Domain", "Archived", "Posts hidden", "Actions"]);
   assert.ok(ths.every((t) => t.getAttribute("scope") === "col"));
@@ -400,7 +403,7 @@ test("renderArchived sorts by domain and wires handlers", () => {
     onRestore: (d) => calls.push(["restore", d]),
     onDelete: (d) => calls.push(["delete", d]),
   }, null);
-  assert.deepEqual([...root.querySelectorAll("td.domain")].map((t) => t.textContent), ["a.com", "z.com"]);
+  assert.deepEqual([...root.querySelectorAll("td.domain")].map(cellValue), ["a.com", "z.com"]);
   root.querySelector('button[data-action="restore"]').click();
   root.querySelector('button[data-action="delete"]').click();
   assert.deepEqual(calls, [["restore", "a.com"], ["delete", "a.com"]]);
@@ -433,7 +436,7 @@ test("Restore sends domain/restore, announces Restored, row moves to the active 
   await settle();
   assert.deepEqual(sent, [{ type: "domain/restore", domain: "old.com" }]);
   assert.equal(document.querySelector('[role="status"]').textContent, "Restored old.com");
-  assert.deepEqual([...document.querySelectorAll("#list td.domain")].map((t) => t.textContent), ["old.com"]);
+  assert.deepEqual([...document.querySelectorAll("#list td.domain")].map(cellValue), ["old.com"]);
   assert.equal(document.querySelector("#archived-list table"), null);
 });
 
@@ -1013,7 +1016,7 @@ test("imported domains and counts appear without a reload", async () => {
   await settle();
   q(document, "Import").click();
   await settle();
-  assert.equal(document.querySelector('[data-count-for="b.com"]').textContent, "7");
+  assert.equal(countOf(document, "b.com"), "7");
   assert.ok(q(document, "Remove b.com"));
 });
 
@@ -1203,4 +1206,63 @@ test("options.css has a forced-colors block for buttons, focus, and the input", 
   assert.match(ruleFor(body, /\.btn\b/).decls, /border:\s*1px solid ButtonText/);
   assert.match(ruleFor(body, /:focus-visible/).decls, /outline-color:\s*Highlight/);
   assert.match(ruleFor(body, /input\[type="text"\]/).decls, /border-color:\s*CanvasText/);
+});
+
+// ---- M4 Task 3: stacked tables ----
+
+test("tables are named by their section heading, with no caption", async () => {
+  const { document } = await setup({ "d:a.com": stored(), "d:old.com": stored("archived") });
+  assert.ok(document.querySelector("#list table[aria-labelledby=active-heading]"));
+  assert.ok(document.querySelector("#archived-list table[aria-labelledby=archived-heading]"));
+  assert.ok(document.getElementById("active-heading"));
+  assert.ok(document.getElementById("archived-heading"));
+  assert.equal(document.querySelector("caption"), null);
+});
+
+test("tables carry explicit table roles", async () => {
+  const { document } = await setup({ "d:a.com": stored(), "d:old.com": stored("archived") });
+  for (const id of ["list", "archived-list"]) {
+    const root = document.getElementById(id);
+    assert.equal(root.querySelector("table").getAttribute("role"), "table");
+    for (const g of root.querySelectorAll("thead, tbody")) assert.equal(g.getAttribute("role"), "rowgroup");
+    for (const r of root.querySelectorAll("tr")) assert.equal(r.getAttribute("role"), "row");
+    for (const h of root.querySelectorAll("th")) assert.equal(h.getAttribute("role"), "columnheader");
+    for (const c of root.querySelectorAll("td")) assert.equal(c.getAttribute("role"), "cell");
+  }
+});
+
+test("stacked-layout cell labels are aria-hidden and match the column headers", async () => {
+  const { document } = await setup({ "d:old.com": stored("archived") });
+  const row = document.querySelector("#archived-list tbody tr");
+  const labels = [...row.querySelectorAll(".cell-label")];
+  assert.deepEqual(labels.map((l) => l.textContent), ["Domain", "Archived", "Posts hidden"]);
+  assert.ok(labels.every((l) => l.getAttribute("aria-hidden") === "true"));
+  assert.equal(row.querySelector("td.actions .cell-label"), null);
+});
+
+test("options.css stacks tables at 32rem and hides thead visually, not with display:none", () => {
+  const body = mediaBody(CSS, "max-width: 32rem");
+  for (const sel of ["table.domains", "tbody", "tr", "td"]) {
+    assert.match(ruleFor(body, new RegExp("(^|,)\\s*" + sel.replace(".", "\\.") + "\\s*(,|$)")).decls, /display:\s*block/);
+  }
+  const thead = ruleFor(body, /thead/).decls;
+  assert.doesNotMatch(thead, /display:\s*none/);
+  assert.match(thead, /clip/);
+  assert.match(ruleFor(body, /\.cell-label/).decls, /display:\s*inline/);
+  assert.match(ruleFor(body, /td\.actions/).decls, /white-space:\s*normal/);
+  assert.match(ruleFor(body, /td\.domain/).decls, /overflow-wrap:\s*anywhere/);
+  assert.ok(CSS.indexOf("@media (max-width: 32rem)") < CSS.indexOf("@media (max-width: 412px)"));
+  assert.match(CSS, /\.cell-label\s*\{[^}]*display:\s*none/);
+});
+
+test("the delete confirmation works the same with the stacked markup", async () => {
+  const { document } = await setup({ "d:old.com": stored("archived") });
+  q(document, "Delete permanently: old.com").click();
+  await settle();
+  assert.match(document.querySelector('[role="group"]').textContent, /Really delete\?/);
+  const confirm = q(document, "Confirm delete of old.com");
+  assert.equal(document.activeElement, confirm);
+  confirm.dispatchEvent(new document.defaultView.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+  await settle();
+  assert.equal(document.activeElement, q(document, "Delete permanently: old.com"));
 });
