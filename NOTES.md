@@ -46,7 +46,7 @@ Seen on `https://old.reddit.com/r/news/` (25 posts, all links):
 - The new-Reddit post page shows more feed items below the post (an ad was visible); the spec already says nothing is hidden on a post's own page, including related-post lists.
 - Profile posts page, new Reddit: `https://www.reddit.com/user/<name>/submitted/` (verified by the owner).
 - A post page's own `shreddit-post` carries `view-context="CommentsPage"` (listings use `SubredditFeed` or `AggregateFeed`). This is a second signal for "this is a post's own page"; the URL rule stays primary.
-- Search URL: **unverified**. Assumed `/search/?q=...`; confirm in Task 14.
+- Search URL: assumed `/search/?q=...`. Search results are deliberately not blocked (owner decision during Task 14), so no markup was captured.
 
 ## Navigation
 
@@ -73,7 +73,7 @@ Run by the owner in their own Chrome with `extension/` loaded unpacked (the auto
 | Spec item | Result |
 |---|---|
 | 1 Hide in place: home feed, subreddit listing, profile `/submitted`, new and old Reddit; a post's own page hides nothing | Pass |
-| 1 Search results | **Fail**: blocked posts are not hidden on search (markup to be captured, adapter fix pending) |
+| 1 Search results | Not a supported page type. Search results were not hidden and no outbound link was found in their markup; the owner decided search results should stay visible, so SPEC.md, README.md and the plan were changed to say so |
 | 2 Matching, new Reddit (`content-href` edited): `www.newsweek.com`, `sub.newsweek.com` hidden; `notnewsweek.com`, `newsweek.com.evil.com`, `/r/news/comments/abc/x/`, `javascript:alert(1)`, `https://example.org/x` not hidden | Pass (all 7) |
 | 2 Matching, old Reddit (`data-url` edited): same 7 cases | Pass (all 7) |
 | 3 Infinite scroll hides new posts | Pass |

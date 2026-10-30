@@ -478,7 +478,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
 
 - [ ] **Step 1: Build and load.** `npm test` → all pass. `npm run build`. Load `extension/` unpacked at `chrome://extensions` (ask the user to do this and enable it if the Chrome tools cannot).
 - [ ] **Step 2: Walk the M1 acceptance items** from the spec on live Reddit, recording pass or fail and any selector fixes in `NOTES.md`:
-  - **1:** with `thedailybeast.com` added via the options page, stubs appear on the home feed, a subreddit, search, and a profile, on both old and new Reddit; a post's own page hides nothing.
+  - **1:** with `thedailybeast.com` added via the options page, stubs appear on the home feed, a subreddit, and a profile (not search results, which are deliberately left alone), on both old and new Reddit; a post's own page hides nothing.
   - **2:** a `www.` and a subdomain link are hidden; a lookalike host is not.
   - **3:** scrolling loads more posts that are hidden without breaking scroll.
   - **4:** adding a domain on the options page hides matching posts in all open Reddit tabs without a reload.

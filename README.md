@@ -10,7 +10,7 @@ Say a few outlets flood your feed with clickbait. Add their domains once, and th
 
 - Hide posts whose link domain is on your list. Blocking `example.com` also blocks `news.example.com`, but not `notexample.com`.
 - Work on old.reddit.com and new Reddit, including posts that load as you scroll.
-- Hide posts in the home feed, subreddits, search results, and user profiles. A post you open on its own page is left alone.
+- Hide posts in the home feed, subreddits, and user profiles. Search results and a post you open on its own page are left alone.
 - Show a stub in place of each hidden post, with **Show post** and **Unblock domain** buttons. The stub matches Reddit's light or dark theme.
 - Let you manage the list on an options page: paste a domain or a full URL and it is cleaned up to a bare hostname. Removing a domain archives it, so you can restore it later. Each domain shows how many posts it has hidden.
 - Add a **Block this domain** entry to the right-click menu on links, on Reddit only.
