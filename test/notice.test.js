@@ -206,3 +206,17 @@ test("the Dismiss button is out of the tab order while the notice is off", () =>
   t.notice.show({ kind: "status", text: "y" });
   assert.equal(t.dismissBtn().hidden, false);
 });
+
+test("notice Dismiss goes icon-only with a 44px target at 412px", () => {
+  const { notice, root, dismissBtn } = setup();
+  notice.show({ kind: "status", text: "x" });
+  const css = root().querySelector("style").textContent;
+  const media = css.slice(css.indexOf("@media (max-width: 412px)"));
+  assert.match(media, /button > span\s*\{\s*display: none;/);
+  assert.match(media, /min-width: 44px;/);
+  assert.match(media, /min-height: 44px;/);
+  assert.match(media, /justify-content: center;/);
+  assert.match(media, /padding: 8px;/);
+  assert.equal(dismissBtn().getAttribute("aria-label"), "Dismiss message");
+  assert.equal(dismissBtn().getAttribute("title"), "Dismiss message");
+});

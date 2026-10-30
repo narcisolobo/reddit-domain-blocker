@@ -67,6 +67,17 @@ button:focus-visible {
   outline-offset: 2px;
 }
 button svg { flex: none; }
+@media (max-width: 412px) {
+  button {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    padding: 8px;
+  }
+  button > span {
+    display: none;
+  }
+}
 @media (forced-colors: active) {
   .box, button { border-color: CanvasText; }
   button:focus-visible { outline-color: Highlight; }

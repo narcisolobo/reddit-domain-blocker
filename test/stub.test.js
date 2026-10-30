@@ -137,3 +137,49 @@ test("every button's aria-label contains its visible text in both states", () =>
     }
   }
 });
+
+test("the stub label shows the ban icon before the text, aria-hidden", () => {
+  const { root } = setup();
+  const label = root.querySelector(".label");
+  assert.equal(label.firstElementChild.tagName.toLowerCase(), "svg");
+  assert.equal(label.firstElementChild.getAttribute("aria-hidden"), "true");
+  assert.equal(label.querySelector(".label-text").textContent, "Hidden: example.com");
+  assert.equal(label.textContent, "Hidden: example.com");
+});
+
+test("setDomain keeps the icon and updates only the text", () => {
+  const { stub, root } = setup();
+  const icon = root.querySelector(".label svg");
+  stub.setDomain("foo.org");
+  assert.equal(root.querySelector(".label svg"), icon);
+  assert.equal(root.querySelector(".label-text").textContent, "Hidden: foo.org");
+  stub.setState("revealed");
+  assert.equal(root.querySelectorAll(".label svg").length, 1);
+  assert.equal(root.querySelector(".label-text").textContent, "Shown: foo.org");
+});
+
+test("stub buttons go icon-only with 44px targets at 412px", () => {
+  const { root, buttons } = setup();
+  const css = root.querySelector("style").textContent;
+  const media = css.slice(css.indexOf("@media (max-width: 412px)"));
+  assert.match(media, /button > span\s*\{\s*display: none;/);
+  assert.match(media, /min-width: 44px;/);
+  assert.match(media, /min-height: 44px;/);
+  assert.match(media, /justify-content: center;/);
+  assert.match(media, /padding: 8px;/);
+  for (const b of buttons()) {
+    assert.ok(b.getAttribute("aria-label"));
+    assert.ok(b.getAttribute("title"));
+  }
+});
+
+test("a 60-character domain wraps instead of widening the stub", () => {
+  const { root } = setup({ domain: "a".repeat(60) + ".com" });
+  const css = root.querySelector("style").textContent;
+  const rule = css.match(/\.label\s*\{[^}]*\}/)[0];
+  assert.match(rule, /min-width: 0;/);
+  assert.match(rule, /overflow-wrap: anywhere;/);
+  const text = css.match(/\.label-text\s*\{[^}]*\}/)[0];
+  assert.match(text, /min-width: 0;/);
+  assert.match(text, /overflow-wrap: anywhere;/);
+});

@@ -22,7 +22,18 @@ ${paletteCss(".bar")}
   font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 .label {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
   flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.label svg {
+  flex: none;
+  margin-top: 2px;
+}
+.label-text {
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -53,6 +64,17 @@ button:focus-visible {
 }
 button svg {
   flex: none;
+}
+@media (max-width: 412px) {
+  button {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    padding: 8px;
+  }
+  button > span {
+    display: none;
+  }
 }
 .error {
   flex-basis: 100%;
@@ -89,6 +111,10 @@ export function createStub(document, { domain, theme, state, handlers }) {
 
   const label = document.createElement("span");
   label.className = "label";
+  const labelText = document.createElement("span");
+  labelText.className = "label-text";
+  label.innerHTML = icon("ban", 16);
+  label.append(labelText);
 
   const actions = document.createElement("div");
   actions.className = "actions";
@@ -123,7 +149,7 @@ export function createStub(document, { domain, theme, state, handlers }) {
   function render() {
     const hidden = currentState === "hidden";
     group.setAttribute("aria-label", groupLabel());
-    label.textContent = `${hidden ? "Hidden" : "Shown"}: ${currentDomain}`;
+    labelText.textContent = `${hidden ? "Hidden" : "Shown"}: ${currentDomain}`;
     primary = hidden
       ? makeButton("eye", "Show post", "Show post", () => handlers.onShow())
       : makeButton("eye-off", "Hide post", "Hide post", () => handlers.onHide());
@@ -145,7 +171,7 @@ export function createStub(document, { domain, theme, state, handlers }) {
     setDomain(d) {
       currentDomain = d;
       group.setAttribute("aria-label", groupLabel());
-      label.textContent = `${currentState === "hidden" ? "Hidden" : "Shown"}: ${d}`;
+      labelText.textContent = `${currentState === "hidden" ? "Hidden" : "Shown"}: ${d}`;
       unblock.setAttribute("aria-label", `Unblock domain ${d}`);
       unblock.title = `Unblock domain ${d}`;
     },
