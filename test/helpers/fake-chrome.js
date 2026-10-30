@@ -1,9 +1,12 @@
+import { itemBytes } from "../../src/shared/transfer.js";
+
 // NOTE: onChanged fires synchronously inside set()/remove() and also for writes
 // that change nothing. Real Chrome fires it asynchronously and only for keys
 // whose value changed, so tests must not depend on that ordering.
 function createArea(name, onChanged) {
   let data = {};
   let nextSetError = null;
+  let bytesOverride = null;
 
   const pick = (keys) => {
     if (keys == null) return { ...data };
@@ -39,6 +42,14 @@ function createArea(name, onChanged) {
         delete data[k];
       }
       if (Object.keys(changes).length) onChanged(changes, name);
+    },
+    async getBytesInUse(keys) {
+      if (bytesOverride !== null) return bytesOverride;
+      const items = pick(keys);
+      return Object.entries(items).reduce((sum, [k, v]) => sum + itemBytes(k, v), 0);
+    },
+    overrideBytesInUse(n) {
+      bytesOverride = n;
     },
     failNextSet(error) {
       nextSetError = error;

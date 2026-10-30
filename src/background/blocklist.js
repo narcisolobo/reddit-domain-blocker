@@ -1,13 +1,11 @@
+import { failureReason } from "./errors.js";
+import { importDomains } from "./import.js";
 import { normalizeInput } from "../shared/domain.js";
 import { recordHits } from "./stats.js";
 import { statsKey } from "../shared/stats.js";
 import { keyFor, toStored, fromStored, recordsFromItems } from "../shared/records.js";
 
 const SOURCES = ["options", "context-menu", "stub", "import"];
-
-function failureReason(err) {
-  return /quota/i.test(String(err?.message ?? err)) ? "quota" : "error";
-}
 
 async function readRecord(area, domain) {
   const key = keyFor(domain);
@@ -107,6 +105,8 @@ export async function handleMessage(msg, areas, now = Date.now()) {
       return restoreDomain(areas.sync, msg.domain, now);
     case "domain/delete":
       return deleteDomain(areas, msg.domain);
+    case "domain/import":
+      return importDomains(areas, msg.text, msg.countMode);
     case "stats/hits":
       return recordHits(areas, msg.hits, now);
     default:
