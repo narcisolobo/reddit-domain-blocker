@@ -113,6 +113,7 @@ caption {
 
 th { text-align: left; color: var(--muted); font-weight: 600; padding: 0.5rem 0; border-bottom: 1px solid var(--rule); white-space: nowrap; }
 td { padding: 0.875rem 0; border-bottom: 1px solid var(--rule); }
+th:not(:last-child), td:not(:last-child) { padding-right: 1rem; }
 td.domain { overflow-wrap: anywhere; }
 td.actions { text-align: right; }
 @media (min-width: 40rem) { td.actions { white-space: nowrap; } }
@@ -130,5 +131,8 @@ td.actions { text-align: right; }
   border: 0;
 }
 
-.confirm-group { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.5rem; }
+/* Sits on its own line under the row's buttons so the row never crowds. */
+.confirm-group { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; }
 .confirm-text { font-weight: 600; }
+/* Stays above the 24px minimum target size (WCAG 2.5.8). */
+.btn-small { padding: 0.25rem 0.625rem; font-size: 0.875rem; min-height: 1.75rem; }

@@ -92,7 +92,7 @@ function confirmGroup(doc, domain, handlers) {
     rowButton(doc, {
       action: "confirm",
       domain,
-      className: "btn btn-remove",
+      className: "btn btn-small btn-remove",
       iconName: "trash",
       label: "Confirm",
       ariaLabel: `Confirm delete of ${domain}`,
@@ -102,7 +102,7 @@ function confirmGroup(doc, domain, handlers) {
     rowButton(doc, {
       action: "cancel",
       domain,
-      className: "btn btn-restore",
+      className: "btn btn-small btn-restore",
       iconName: "x",
       label: "Cancel",
       ariaLabel: `Cancel delete of ${domain}`,

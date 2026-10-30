@@ -513,6 +513,8 @@ test("first Delete click shows the confirm group, writes nothing, focuses Confir
   const cancel = q(document, "Cancel delete of old.com");
   assert.equal(cancel.title, "Keep old.com");
   assert.match(cancel.textContent, /Cancel/);
+  assert.equal(confirm.classList.contains("btn-small"), true);
+  assert.equal(cancel.classList.contains("btn-small"), true);
   assert.equal(document.activeElement, confirm);
   assert.ok(q(document, "Restore old.com"));
 });
