@@ -35,7 +35,7 @@ The extension makes no network requests, collects nothing, and loads no remote c
 | [src/](src/) | Source: `background/` (service worker, storage, right-click menu), `content/` (finds and hides posts, the stub), `options/` (options page), `shared/` (domain cleanup, records, import and export) |
 | [extension/](extension/) | The loadable extension. `manifest.json`, `options.html` and `options.css` live here; the build writes the bundled scripts next to them |
 | [test/](test/) | Node test suite, run in jsdom, including contrast and axe-core checks |
-| [scripts/](scripts/) | The esbuild build and the icon generator |
+| [scripts/](scripts/) | The esbuild build and two icon generators: Tabler glyphs for the UI (`gen-icons`) and the extension icon PNGs (`gen-app-icons`) |
 | [LICENSE](LICENSE) | MIT license |
 
 ## Building and installing
