@@ -78,6 +78,7 @@ button {
   font: inherit;
   cursor: pointer;
 }
+button[hidden] { display: none; }
 button:hover { background: var(--rdb-btn-hover); }
 button:focus-visible {
   outline: 2px solid var(--rdb-focus);

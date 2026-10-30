@@ -114,3 +114,16 @@ test("the box is visible before the text is written", () => {
   t.run();
   assert.equal(t.region("alert").textContent, "late");
 });
+
+test("the Dismiss button is out of the tab order while the notice is off", () => {
+  const t = setup();
+  t.notice.show({ kind: "status", text: "x" });
+  t.run();
+  assert.equal(t.dismissBtn().hidden, false);
+  t.notice.dismiss();
+  assert.equal(t.dismissBtn().hidden, true);
+  const css = t.root().querySelector("style").textContent;
+  assert.match(css, /button\[hidden\]\s*\{\s*display:\s*none;?\s*\}/);
+  t.notice.show({ kind: "status", text: "y" });
+  assert.equal(t.dismissBtn().hidden, false);
+});
