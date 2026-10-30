@@ -133,6 +133,18 @@ test("a rejected tabs.sendMessage is swallowed", async () => {
   assert.ok((await fake.storage.sync.get(null))["d:a.com"]);
 });
 
+test("clicking an ad link sends the ad notice and writes nothing", async () => {
+  const fake = createFakeChrome();
+  init(fake);
+  await click(fake, "https://alb.reddit.com/cr?za=abc&zp=def&a=1");
+  assert.deepEqual(fake.tabs.sent[0].msg, {
+    type: "notice",
+    kind: "error",
+    text: "This looks like an ad. Ads can't be blocked by domain.",
+  });
+  assert.deepEqual(await fake.storage.sync.get(null), {});
+});
+
 test("a click with no tab or another menu id does nothing", async () => {
   const fake = createFakeChrome();
   init(fake);

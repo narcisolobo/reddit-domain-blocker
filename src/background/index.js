@@ -23,7 +23,7 @@ export function init(chromeApi) {
     if (info.menuItemId !== MENU_ID || !(tab?.id >= 0)) return Promise.resolve();
     const run = queue.then(async () => {
       const result = await addDomain(chromeApi.storage.sync, info.linkUrl, "context-menu");
-      const notice = menuNoticeFor(result);
+      const notice = menuNoticeFor(result, info.linkUrl);
       if (notice) {
         await chromeApi.tabs.sendMessage(tab.id, { type: "notice", ...notice }).catch(() => {});
       }

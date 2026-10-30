@@ -36,3 +36,13 @@ test("menuNoticeFor: null for added and restored; texts for exists and every rea
     assert.deepEqual(err(r), { kind: "error", text: "Couldn't block that domain. Please try again." });
   }
 });
+
+test("a refused ad link says it's an ad; other Reddit links keep the generic text", () => {
+  const refused = { ok: false, reason: "protected" };
+  const ad = { kind: "error", text: "This looks like an ad. Ads can't be blocked by domain." };
+  assert.deepEqual(menuNoticeFor(refused, "https://alb.reddit.com/cr?za=abc&zp=def"), ad);
+  assert.deepEqual(menuNoticeFor(refused, "https://ALB.reddit.com./cr?za=abc"), ad);
+  for (const url of ["https://www.reddit.com/r/news/comments/abc/x/", "https://alb.reddit.com.evil.com/", "https://notalb.reddit.com/", "mailto:a@b.com", undefined]) {
+    assert.match(menuNoticeFor(refused, url).text, /^Reddit's own links can't be blocked/);
+  }
+});

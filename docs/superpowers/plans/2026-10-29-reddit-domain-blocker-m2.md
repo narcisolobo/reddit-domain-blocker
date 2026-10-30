@@ -246,6 +246,7 @@ These are the conditions a user will run into that the spec doesn't spell out. E
   - `export async function registerMenu(contextMenus): Promise<void>`. It calls `removeAll()` and then `create({ id: MENU_ID, title: "Block this domain", contexts: ["link"], documentUrlPatterns: ["*://*.reddit.com/*"] })`.
   - `export function menuNoticeFor(result): { kind: "status" | "error", text: string } | null`. It returns `null` for outcomes `added` and `restored`, where the hiding is the confirmation. It returns `{ kind: "status", text: "<domain> is already blocked." }` for `exists`. For the error reasons it returns these texts:
     - `protected`: "Reddit's own links can't be blocked. Right-click the post's outbound link instead."
+    - `protected` when the link is on an ad host (`alb.reddit.com`): "This looks like an ad. Ads can't be blocked by domain." `menuNoticeFor(result, linkUrl)` takes the link as a second argument for this.
     - `invalid` / `empty` / `single-label`: "That link has no domain that can be blocked."
     - `ip`: "IP addresses can't be blocked."
     - `quota`: "The block list is full. Remove some domains on the options page."
