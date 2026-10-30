@@ -174,6 +174,22 @@ test("delete removes the sync record and the local stats", async () => {
   assert.deepEqual(await areas.local.get(null), {});
 });
 
+test("delete removes stats before the record, so a failed sync remove stays retryable", async () => {
+  await addDomain(area, "a.com", "options", 1);
+  await archiveDomain(area, "a.com", 2);
+  await areas.local.set({ "stats:a.com": stat });
+  const realRemove = areas.sync.remove;
+  areas.sync.remove = async () => {
+    throw new Error("sync down");
+  };
+  assert.deepEqual(await deleteDomain(areas, "a.com"), { ok: false, domain: "a.com", reason: "error" });
+  assert.equal((await stored("a.com")).s, "x");
+  assert.equal(await localGet("stats:a.com"), undefined);
+  areas.sync.remove = realRemove;
+  assert.deepEqual(await deleteDomain(areas, "a.com"), { ok: true, domain: "a.com", outcome: "deleted" });
+  assert.equal(await stored("a.com"), undefined);
+});
+
 test("delete refuses an active domain with not-archived and changes nothing", async () => {
   await addDomain(area, "a.com", "options", 1);
   await areas.local.set({ "stats:a.com": stat });

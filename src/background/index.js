@@ -17,7 +17,7 @@ export function init(chromeApi) {
     return true;
   });
 
-  chromeApi.runtime.onInstalled.addListener(() => registerMenu(chromeApi.contextMenus));
+  chromeApi.runtime.onInstalled.addListener(() => registerMenu(chromeApi.contextMenus).catch(() => {}));
 
   chromeApi.contextMenus.onClicked.addListener((info, tab) => {
     if (info.menuItemId !== MENU_ID || !(tab?.id >= 0)) return Promise.resolve();

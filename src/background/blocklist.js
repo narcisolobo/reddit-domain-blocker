@@ -83,8 +83,10 @@ export async function deleteDomain(areas, domain) {
     const existing = await readRecord(areas.sync, domain);
     if (!existing) return { ok: false, domain, reason: "not-found" };
     if (existing.status !== "archived") return { ok: false, domain, reason: "not-archived" };
-    await areas.sync.remove(keyFor(domain));
+    // Stats first: if the sync remove then fails, the record is still there
+    // to retry instead of leaving unreachable orphan stats.
     await areas.local.remove(statsKey(domain));
+    await areas.sync.remove(keyFor(domain));
     return { ok: true, domain, outcome: "deleted" };
   } catch {
     return { ok: false, domain, reason: "error" };

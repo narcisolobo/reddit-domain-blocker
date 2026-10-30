@@ -65,6 +65,15 @@ test("install registers the menu", async () => {
   assert.equal(fake.contextMenus.items[0].id, "block-domain");
 });
 
+test("a failing menu registration on install does not reject", async () => {
+  const fake = createFakeChrome();
+  fake.contextMenus.create = () => {
+    throw new Error("menus unavailable");
+  };
+  init(fake);
+  await assert.doesNotReject(fake.runtime.install());
+});
+
 test("clicking on an outbound link adds the domain with source context-menu and sends no notice", async () => {
   const fake = createFakeChrome();
   init(fake);
