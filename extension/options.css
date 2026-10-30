@@ -43,7 +43,7 @@ body {
 }
 
 main {
-  max-width: 40rem;
+  max-width: 56rem;
   margin: 0 auto;
   padding: 2rem 1rem 4rem;
 }
@@ -111,10 +111,11 @@ caption {
   padding-bottom: 0.5rem;
 }
 
-th { text-align: left; color: var(--muted); font-weight: 600; padding: 0.5rem 0; border-bottom: 1px solid var(--rule); }
+th { text-align: left; color: var(--muted); font-weight: 600; padding: 0.5rem 0; border-bottom: 1px solid var(--rule); white-space: nowrap; }
 td { padding: 0.875rem 0; border-bottom: 1px solid var(--rule); }
 td.domain { overflow-wrap: anywhere; }
 td.actions { text-align: right; }
+@media (min-width: 40rem) { td.actions { white-space: nowrap; } }
 
 .visually-hidden {
   position: absolute;
