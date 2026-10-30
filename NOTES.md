@@ -115,3 +115,23 @@ Run by the owner in their own Chrome with `extension/` loaded unpacked, on new a
 ### Posts hidden counts the same post more than once, on purpose
 
 The count is "how many times a post from this domain was hidden", not "how many different posts". Each page load keeps its own in-memory set of post ids, so the same post counts again after a reload, in a second tab, and on old Reddit as well as new. No URL or post id is stored. Only `stats:<domain>` is written, as `{ blockedCount, lastBlockedAt }` (plan, Global Constraints: "A reload counts again"). Persisting ids to count unique posts would keep a log of what was seen, grow without a bound, and need clean-up on Delete permanently. If a unique count is wanted later, a `chrome.storage.session` set would be the cheaper route, and it would be a spec change.
+
+## M3 verification
+
+Run by the owner in their own Chrome with `extension/` loaded unpacked. Numbers are the checks in Task 5, Step 1 of the M3 plan.
+
+| Check | Result |
+|---|---|
+| 1 Export downloads `reddit-domain-blocker-<date>.json` with every active and archived domain, ISO dates and counts; status says how many | Pass. Three domains (one active, two archived), local-date filename, status "Exported 3 domains" |
+| 2 Importing that file into a fresh Chrome profile reproduces the list, dates, archived entries and counts (acceptance 7) | Pass. Review "3 new, 0 merged, 0 skipped" with no count choice; counts 4, 4 and 1 and archive dates matched the file |
+| 3 Re-importing with Use the larger count changes nothing; Add the two counts together doubles them | Pass. Larger left 4, 4, 1 unchanged; sum gave 8, 8, 2 |
+| 4 A hand-edited file with `reddit.com`, `not a domain`, a duplicate and a very long entry skips each with a reason and imports the rest | Pass. "1 new, 3 merged, 4 skipped"; the long entry is cut at 80 characters with "…" and wraps inside the review at 375px |
+| 5 An unreadable file and an empty export each show a message and change nothing | Pass. Images can't be chosen at all: the picker only accepts `.json` |
+| 6 With a Reddit tab open, importing an active domain hides its posts without a reload | Pass. `newrepublic.com`'s Posts hidden count rose from 2 to 3 after the import with no reload |
+| 7 Keyboard only: Export, Import list…, file choice, radios, Import, Cancel, Escape; focus to the review heading and back to Import list… | Pass |
+| 8 Service worker console has no errors | Pass |
+
+### Follow-ups found during verification
+
+- Fixed: while a new import review was open, the previous import's result stayed in the message area above it and read as that review's outcome. Picking a file now clears it.
+- Open, for M4: the Archived table is wider than a 375px viewport (Restore and Delete permanently stack and run past the content), so the page scrolls sideways, and short domains break mid-word. M4's icon-only buttons at 412px and stacked rows at 320px (spec 5.6, 6.4) cover this.

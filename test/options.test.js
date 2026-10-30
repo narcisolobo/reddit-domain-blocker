@@ -5,6 +5,7 @@ import { JSDOM } from "jsdom";
 import { createFakeChrome } from "./helpers/fake-chrome.js";
 import { messageFor, renderList, renderArchived } from "../src/options/view.js";
 import { init } from "../src/options/index.js";
+import { skipText, renderImportReview, MAX_IMPORT_BYTES } from "../src/options/import-view.js";
 import { handleMessage } from "../src/background/blocklist.js";
 
 const HTML = readFileSync(new URL("../extension/options.html", import.meta.url), "utf8");
@@ -833,4 +834,316 @@ test("a stored record with an out-of-range timestamp does not break the Archived
   });
   assert.ok(q(document, "Restore old.com"));
   assert.equal(q(document, "Restore bad.com"), null);
+});
+
+test("Export list and Import list… buttons are grey outlined with icons, labels and tooltips", async () => {
+  const { document } = await setup();
+  const exp = document.getElementById("export-button");
+  const imp = document.getElementById("import-button");
+  for (const b of [exp, imp]) {
+    assert.equal(b.type, "button");
+    assert.ok(b.classList.contains("btn") && b.classList.contains("btn-restore"));
+    assert.ok(b.querySelector("svg[aria-hidden='true']"));
+  }
+  assert.equal(exp.getAttribute("aria-label"), "Export list");
+  assert.equal(exp.title, "Download your list as a JSON file");
+  assert.equal(exp.textContent.trim(), "Export list");
+  assert.equal(imp.getAttribute("aria-label"), "Import list…");
+  assert.equal(imp.title, "Load a list from an exported JSON file");
+  assert.equal(imp.textContent.trim(), "Import list…");
+  const file = document.getElementById("import-file");
+  assert.equal(file.type, "file");
+  assert.ok(file.hidden);
+});
+
+test("Export downloads every record as JSON and announces it", async () => {
+  const { chrome, dom, document } = await setup({ "d:a.com": stored(), "d:b.com": stored("archived") });
+  await chrome.storage.local.set({ "stats:a.com": { blockedCount: 3, lastBlockedAt: 5 } });
+  const win = dom.window;
+  let blob = null;
+  const revoked = [];
+  win.URL.createObjectURL = (b) => {
+    blob = b;
+    return "blob:fake-1";
+  };
+  win.URL.revokeObjectURL = (u) => revoked.push(u);
+  const anchors = [];
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest?.("a[download]");
+    if (a) {
+      anchors.push(a);
+      e.preventDefault();
+    }
+  });
+  const button = document.getElementById("export-button");
+  button.focus();
+  button.click();
+  await settle();
+  assert.equal(anchors.length, 1);
+  assert.match(anchors[0].download, /^reddit-domain-blocker-\d{4}-\d{2}-\d{2}\.json$/);
+  assert.equal(blob.type, "application/json");
+  const data = JSON.parse(
+    await new Promise((resolve, reject) => {
+      const reader = new win.FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsText(blob);
+    }),
+  );
+  assert.equal(data.extensionVersion, "0.1.0");
+  assert.deepEqual(data.domains.map((d) => d.domain), ["a.com", "b.com"]);
+  assert.equal(data.domains[0].blockedCount, 3);
+  assert.equal(document.getElementById("status").textContent, "Exported 2 domains");
+  await settle();
+  assert.deepEqual(revoked, ["blob:fake-1"]);
+  assert.equal(document.activeElement, button);
+  assert.equal(document.querySelector("a[download]"), null);
+});
+
+test("Export shows the generic error when storage cannot be read", async () => {
+  const { chrome, document } = await setup();
+  chrome.storage.sync.get = async () => {
+    throw new Error("boom");
+  };
+  document.getElementById("export-button").click();
+  await settle();
+  assert.equal(document.getElementById("action-error").textContent, "Something went wrong. Please try again.");
+  assert.equal(document.getElementById("status").textContent, "");
+});
+
+test("messageFor exported pluralizes", () => {
+  assert.deepEqual(messageFor({ ok: true, outcome: "exported", count: 1 }), { kind: "status", text: "Exported 1 domain" });
+  assert.deepEqual(messageFor({ ok: true, outcome: "exported", count: 3 }), { kind: "status", text: "Exported 3 domains" });
+  assert.deepEqual(messageFor({ ok: true, outcome: "exported", count: 0 }), { kind: "status", text: "Exported 0 domains" });
+});
+
+// ---- Import review ----
+
+const D = "2024-01-01T00:00:00.000Z";
+function entry(domain, extra = {}) {
+  return { domain, status: "active", addedAt: D, updatedAt: D, archivedAt: null, blockedCount: 0, lastBlockedAt: null, source: "options", ...extra };
+}
+function exportJson(domains) {
+  return JSON.stringify({ schemaVersion: 1, exportedAt: D, extensionVersion: "0.1.0", domains });
+}
+function pick(document, json, size = json.length) {
+  const input = document.getElementById("import-file");
+  const file = { name: "list.json", size, text: async () => json };
+  Object.defineProperty(input, "files", { value: [file], configurable: true });
+  input.dispatchEvent(new document.defaultView.Event("change"));
+}
+const importBtn = (document) => document.getElementById("import-button");
+const review = (document) => document.getElementById("import-review");
+
+test("picking a file shows the review with counts and skips, and focuses its heading", async () => {
+  const { document } = await setup({ "d:a.com": stored() });
+  importBtn(document).click();
+  pick(document, exportJson([entry("a.com"), entry("b.com"), entry("reddit.com"), entry("not a domain")]));
+  await settle();
+  const root = review(document);
+  const heading = root.querySelector("#import-heading");
+  assert.equal(heading.textContent, "Review import");
+  assert.equal(heading.getAttribute("tabindex"), "-1");
+  assert.equal(document.activeElement, heading);
+  assert.equal(root.querySelector("section").getAttribute("aria-labelledby"), "import-heading");
+  assert.equal(root.querySelector("section").getAttribute("aria-describedby"), "import-summary");
+  assert.equal(root.querySelector("#import-summary").textContent, "1 new, 1 merged, 2 skipped");
+  assert.equal(root.querySelector("p").textContent, "1 new, 1 merged, 2 skipped");
+  const lines = [...root.querySelectorAll("li")].map((li) => li.textContent);
+  assert.deepEqual(lines, ["reddit.com is a Reddit domain", "not a domain isn't a valid domain"]);
+  assert.equal(document.getElementById("import-file").value, "");
+  assert.equal(q(document, "Import").title, "Add these domains to your list");
+  assert.equal(q(document, "Cancel import").title, "Don't import");
+  assert.ok(q(document, "Import").classList.contains("btn-restore"));
+  assert.equal(root.querySelector("[role=status],[role=alert],[aria-live]"), null);
+});
+
+test("the count choice appears only when a domain is on both sides, larger by default", async () => {
+  const { document } = await setup({ "d:a.com": stored() });
+  pick(document, exportJson([entry("b.com")]));
+  await settle();
+  assert.equal(review(document).querySelector("fieldset"), null);
+  pick(document, exportJson([entry("a.com")]));
+  await settle();
+  const fs = review(document).querySelector("fieldset");
+  assert.equal(fs.querySelector("legend").textContent, "Counts for domains already on your list");
+  const radios = [...fs.querySelectorAll("input[type=radio]")];
+  assert.deepEqual(radios.map((r) => [r.name, r.value, r.checked]), [["count-mode", "larger", true], ["count-mode", "sum", false]]);
+  assert.deepEqual([...fs.querySelectorAll("label")].map((l) => l.textContent.trim()), ["Use the larger count", "Add the two counts together"]);
+});
+
+test("Import sends domain/import with the text and the chosen mode, then announces the result", async () => {
+  const { chrome, document } = await setup({ "d:a.com": stored() });
+  await chrome.storage.local.set({ "stats:a.com": { blockedCount: 2, lastBlockedAt: null } });
+  const sent = [];
+  chrome.runtime.setMessageHandler((msg) => {
+    sent.push(msg);
+    return handleMessage(msg, { sync: chrome.storage.sync, local: chrome.storage.local });
+  });
+  const json = exportJson([entry("a.com", { blockedCount: 3 }), entry("b.com")]);
+  pick(document, json);
+  await settle();
+  review(document).querySelector("input[value=sum]").click();
+  q(document, "Import").click();
+  await settle();
+  assert.deepEqual(sent, [{ type: "domain/import", text: json, countMode: "sum" }]);
+  assert.equal(document.getElementById("status").textContent, "Imported: 1 new, 1 merged, 0 skipped.");
+  assert.equal(review(document).innerHTML, "");
+  assert.equal(document.activeElement, importBtn(document));
+  assert.equal((await chrome.storage.local.get("stats:a.com"))["stats:a.com"].blockedCount, 5);
+});
+
+test("picking a new file clears the previous result from the page messages", async () => {
+  const { document } = await setup();
+  pick(document, exportJson([entry("b.com")]));
+  await settle();
+  q(document, "Import").click();
+  await settle();
+  assert.equal(document.getElementById("status").textContent, "Imported: 1 new, 0 merged, 0 skipped.");
+  pick(document, exportJson([entry("c.com")]));
+  await settle();
+  assert.ok(review(document).querySelector("section"));
+  assert.equal(document.getElementById("status").textContent, "");
+  assert.equal(document.getElementById("action-error").textContent, "");
+});
+
+test("imported domains and counts appear without a reload", async () => {
+  const { document } = await setup();
+  pick(document, exportJson([entry("b.com", { blockedCount: 7 })]));
+  await settle();
+  q(document, "Import").click();
+  await settle();
+  assert.equal(document.querySelector('[data-count-for="b.com"]').textContent, "7");
+  assert.ok(q(document, "Remove b.com"));
+});
+
+test("Cancel and Escape close the review, write nothing, and return focus to Import list…", async () => {
+  const { chrome, document } = await setup();
+  const before = JSON.stringify(await chrome.storage.sync.get(null));
+  pick(document, exportJson([entry("b.com")]));
+  await settle();
+  q(document, "Cancel import").click();
+  assert.equal(review(document).innerHTML, "");
+  assert.equal(document.activeElement, importBtn(document));
+  pick(document, exportJson([entry("b.com")]));
+  await settle();
+  q(document, "Import").focus();
+  q(document, "Import").dispatchEvent(new document.defaultView.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+  assert.equal(review(document).innerHTML, "");
+  assert.equal(document.activeElement, importBtn(document));
+  assert.equal(JSON.stringify(await chrome.storage.sync.get(null)), before);
+});
+
+test("an unreadable or wrong-version file shows an alert and no review", async () => {
+  const { document } = await setup();
+  for (const json of ["", "{}", "[]", '{"schemaVersion":2,"domains":[]}']) {
+    pick(document, json);
+    await settle();
+    assert.equal(review(document).innerHTML, "");
+    assert.match(document.getElementById("action-error").textContent, /^That (file isn't a Reddit Domain Blocker export|export is from a different version of Reddit Domain Blocker)\. Nothing was imported\.$/);
+    assert.equal(document.getElementById("status").textContent, "");
+  }
+  pick(document, exportJson([entry("reddit.com")]));
+  await settle();
+  assert.equal(review(document).innerHTML, "");
+  assert.equal(document.getElementById("action-error").textContent, "Nothing to import: every entry in that file was skipped.");
+});
+
+test("a file over 1 MB is refused without being read", async () => {
+  const { document } = await setup();
+  const input = document.getElementById("import-file");
+  const file = { name: "big.json", size: 1048577, text: async () => { throw new Error("read"); } };
+  Object.defineProperty(input, "files", { value: [file], configurable: true });
+  input.dispatchEvent(new document.defaultView.Event("change"));
+  await settle();
+  assert.equal(document.getElementById("action-error").textContent, "That file is too large to be an export. Nothing was imported.");
+  assert.equal(review(document).innerHTML, "");
+});
+
+test("a refused import shows the overage", async () => {
+  const { chrome, document } = await setup();
+  chrome.runtime.setMessageHandler(async () => ({ ok: false, reason: "too-many", over: 3 }));
+  pick(document, exportJson([entry("b.com")]));
+  await settle();
+  q(document, "Import").click();
+  await settle();
+  assert.equal(document.getElementById("action-error").textContent, "That import would go over Chrome's limit of 512 domains by 3. Nothing was imported.");
+  assert.equal(review(document).innerHTML, "");
+  assert.equal(document.activeElement, importBtn(document));
+});
+
+test("a status from the worker, not the preview, is what's announced", async () => {
+  const { chrome, document } = await setup();
+  pick(document, exportJson([entry("c.com")]));
+  await settle();
+  assert.equal(review(document).querySelector("p").textContent, "1 new, 0 merged, 0 skipped");
+  await chrome.storage.sync.set({ "d:c.com": stored() });
+  await settle();
+  q(document, "Import").click();
+  await settle();
+  assert.equal(document.getElementById("status").textContent, "Imported: 0 new, 1 merged, 0 skipped.");
+});
+
+test("messageFor covers the import outcomes", () => {
+  assert.equal(messageFor({ ok: false, reason: "too-large", over: 2049 }).text, "That import would go over Chrome's sync storage limit by about 3 KB. Nothing was imported.");
+  assert.equal(messageFor({ ok: false, reason: "file-too-big" }).text, "That file is too large to be an export. Nothing was imported.");
+  assert.equal(messageFor({ ok: false, reason: "nothing-to-import", skipped: 2 }).kind, "error");
+  assert.equal(messageFor({ ok: false, reason: "nothing-to-import", skipped: 2 }).text, "Nothing to import: every entry in that file was skipped.");
+  assert.equal(messageFor({ ok: false, reason: "nothing-to-import", skipped: 0 }).text, "That file has no domains in it. Nothing was imported.");
+  assert.equal(messageFor({ ok: false, reason: "import-quota" }).text, "Chrome refused to save the import. Nothing was imported. Try again in a minute.");
+});
+
+test("an export with no domains says so instead of blaming skips", async () => {
+  const { document } = await setup();
+  pick(document, exportJson([]));
+  await settle();
+  assert.equal(document.getElementById("action-error").textContent, "That file has no domains in it. Nothing was imported.");
+  assert.equal(review(document).innerHTML, "");
+});
+
+test("skipText reads naturally and the list stops at 10", () => {
+  assert.equal(skipText({ index: 0, domain: "a.com", reason: "duplicate" }), "a.com appears more than once");
+  assert.equal(skipText({ index: 4, domain: null, reason: "invalid-record" }), "Entry 5 has missing or invalid fields");
+  assert.equal(skipText({ index: 0, domain: "x", reason: "invalid-domain" }), "x isn't a valid domain");
+  assert.equal(skipText({ index: 0, domain: "a".repeat(300), reason: "invalid-domain" }), `${"a".repeat(80)}… isn't a valid domain`);
+  const { document } = page();
+  const root = document.getElementById("import-review");
+  const skipped = Array.from({ length: 13 }, (_, i) => ({ index: i, domain: `d${i}`, reason: "protected" }));
+  renderImportReview(root, { added: 0, merged: 0, skipped }, { onImport() {}, onCancel() {} });
+  assert.equal(root.querySelectorAll("li").length, 11);
+  assert.equal(root.querySelector("li:last-child").textContent, "and 3 more");
+  assert.equal(MAX_IMPORT_BYTES, 1048576);
+});
+
+test("clicking Import twice sends one domain/import", async () => {
+  const { chrome, document } = await setup({ "d:a.com": stored() });
+  let sends = 0;
+  chrome.runtime.setMessageHandler((msg) => {
+    sends++;
+    return handleMessage(msg, { sync: chrome.storage.sync, local: chrome.storage.local });
+  });
+  pick(document, exportJson([entry("a.com", { blockedCount: 3 })]));
+  await settle();
+  const btn = q(document, "Import");
+  btn.click();
+  btn.click();
+  await settle();
+  assert.equal(sends, 1);
+});
+
+test("a slower earlier file pick does not replace a newer review", async () => {
+  const { document } = await setup();
+  const input = document.getElementById("import-file");
+  const choose = (file) => {
+    Object.defineProperty(input, "files", { value: [file], configurable: true });
+    input.dispatchEvent(new document.defaultView.Event("change"));
+  };
+  let release;
+  const slow = exportJson([entry("old.com")]);
+  choose({ size: 10, text: () => new Promise((r) => (release = () => r(slow))) });
+  choose({ size: 10, text: async () => exportJson([entry("new.com"), entry("new2.com")]) });
+  await settle();
+  release();
+  await settle();
+  assert.equal(review(document).querySelector("p").textContent, "2 new, 0 merged, 0 skipped");
 });

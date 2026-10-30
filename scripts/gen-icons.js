@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const names = ["plus", "trash", "eye", "eye-off", "ban", "arrow-back-up", "x"];
+const names = ["plus", "trash", "eye", "eye-off", "ban", "arrow-back-up", "x", "download", "upload"];
 
 const bodies = {};
 for (const name of names) {

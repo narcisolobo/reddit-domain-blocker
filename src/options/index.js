@@ -1,6 +1,8 @@
 import { icon } from "../shared/icons.js";
 import { recordsFromItems } from "../shared/records.js";
 import { statsFromItems, STATS_PREFIX } from "../shared/stats.js";
+import { buildExport, exportFilename, parseImport, planImport } from "../shared/transfer.js";
+import { clearImportReview, MAX_IMPORT_BYTES, renderImportReview } from "./import-view.js";
 import { messageFor, renderArchived, renderList, updateCounts } from "./view.js";
 
 export async function init(env) {
@@ -17,6 +19,14 @@ export async function init(env) {
 
   addButton.innerHTML = `${icon("plus")}<span>Add</span>`;
   errorEl.id = "error";
+  const exportButton = document.getElementById("export-button");
+  const importButton = document.getElementById("import-button");
+  exportButton.setAttribute("aria-label", "Export list");
+  exportButton.title = "Download your list as a JSON file";
+  exportButton.innerHTML = `${icon("download")}<span>Export list</span>`;
+  importButton.setAttribute("aria-label", "Import list…");
+  importButton.title = "Load a list from an exported JSON file";
+  importButton.innerHTML = `${icon("upload")}<span>Import list…</span>`;
 
   // One message shows at a time. The Add form's errors (`field`) sit under the
   // input and mark it invalid; everything else goes in the region under the title.
@@ -228,6 +238,83 @@ export async function init(env) {
       input.value = "";
       input.focus();
     }
+  });
+
+  exportButton.addEventListener("click", async () => {
+    try {
+      // Read fresh rather than trusting the last render.
+      const [syncItems, localItems] = await Promise.all([chrome.storage.sync.get(null), chrome.storage.local.get(null)]);
+      const data = buildExport(recordsFromItems(syncItems), statsFromItems(localItems), {
+        now: Date.now(),
+        version: chrome.runtime.getManifest().version,
+      });
+      const { URL, Blob } = document.defaultView;
+      const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = exportFilename(Date.parse(data.exportedAt));
+      document.body.append(link);
+      link.click();
+      link.remove();
+      // Revoke after the browser has had a turn to start the download.
+      document.defaultView.setTimeout(() => URL.revokeObjectURL(url), 0);
+      show(messageFor({ ok: true, outcome: "exported", count: data.domains.length }));
+    } catch {
+      show(messageFor(undefined));
+    }
+  });
+
+  const fileInput = document.getElementById("import-file");
+  const reviewEl = document.getElementById("import-review");
+
+  let pickToken = 0;
+
+  function closeReview() {
+    pickToken++;
+    clearImportReview(reviewEl);
+    importButton.focus();
+  }
+
+  importButton.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", async () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    fileInput.value = "";
+    const mine = ++pickToken;
+    clearImportReview(reviewEl);
+    // A previous result left above a new review reads as that review's outcome.
+    statusEl.textContent = "";
+    actionErrorEl.textContent = "";
+    if (file.size > MAX_IMPORT_BYTES) return show(messageFor({ ok: false, reason: "file-too-big" }));
+    let text;
+    try {
+      text = await file.text();
+    } catch {
+      if (mine !== pickToken) return;
+      return show(messageFor({ ok: false, reason: "unreadable" }));
+    }
+    if (mine !== pickToken) return;
+    const parsed = parseImport(text);
+    const refusal = !parsed.ok ? parsed.reason : parsed.entries.length === 0 ? "nothing-to-import" : null;
+    if (refusal) return show(messageFor({ ok: false, reason: refusal, skipped: parsed.skipped?.length }));
+    const plan = planImport(lastRecords, lastStats, parsed.entries, "larger");
+    let sending = false;
+    renderImportReview(reviewEl, { added: plan.added, merged: plan.merged, skipped: parsed.skipped }, {
+      onCancel: closeReview,
+      onImport: async (countMode) => {
+        if (sending) return;
+        sending = true;
+        for (const b of reviewEl.querySelectorAll("button")) b.disabled = true;
+        const result = await send({ type: "domain/import", text, countMode });
+        sending = false;
+        show(messageFor(result));
+        if (mine !== pickToken) return;
+        pickToken++;
+        clearImportReview(reviewEl);
+        importButton.focus();
+      },
+    });
+    document.getElementById("import-heading").focus();
   });
 
   input.addEventListener("input", () => {

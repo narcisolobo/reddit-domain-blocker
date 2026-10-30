@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { icon } from "../src/shared/icons.js";
 
-for (const name of ["plus", "trash", "eye", "eye-off", "ban", "arrow-back-up", "x"]) {
+for (const name of ["plus", "trash", "eye", "eye-off", "ban", "arrow-back-up", "x", "download", "upload"]) {
   test(`icon(${name}) is decorative inline svg`, () => {
     const svg = icon(name);
     assert.match(svg, /^<svg[^>]*aria-hidden="true"/);
