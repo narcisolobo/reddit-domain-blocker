@@ -1,6 +1,7 @@
 import { pickAdapter } from "./adapters.js";
 import { createBlocker } from "./blocker.js";
 import { createHitBatcher } from "./hits.js";
+import { createNotice } from "./notice.js";
 import { activeDomains, recordsFromItems } from "../shared/records.js";
 
 const POLL_MS = 500;
@@ -57,6 +58,22 @@ export async function init({ chrome, document, location, window }) {
       if (areaName !== "sync") return;
       try {
         refresh();
+      } catch {
+        // Ignore.
+      }
+    });
+  } catch {
+    // Ignore.
+  }
+
+  const notice = createNotice(document);
+  try {
+    chrome.runtime.onMessage.addListener((msg) => {
+      try {
+        if (msg?.type !== "notice") return;
+        if (msg.kind !== "status" && msg.kind !== "error") return;
+        if (typeof msg.text !== "string" || msg.text === "") return;
+        notice.show({ kind: msg.kind, text: msg.text.slice(0, 300) });
       } catch {
         // Ignore.
       }

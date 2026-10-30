@@ -340,3 +340,28 @@ test("pagehide flushes pending hits", async () => {
   await flush();
   assert.deepEqual(msgs, [{ type: "stats/hits", hits: { "example.com": 1 } }]);
 });
+
+test("a notice message shows the notice; malformed notice messages are ignored", async () => {
+  const t = await setup({ posts: [{ id: "t3_a", href: "https://example.com/a" }] });
+  const host = () => t.document.querySelector("[data-rdb-notice]");
+  for (const bad of [
+    undefined,
+    null,
+    "notice",
+    { type: "other", kind: "error", text: "x" },
+    { type: "notice", kind: "warn", text: "x" },
+    { type: "notice", kind: "error", text: "" },
+    { type: "notice", kind: "error", text: 5 },
+    { type: "notice", kind: "error" },
+  ]) {
+    await t.fake.runtime.dispatchMessage(bad);
+  }
+  assert.equal(host(), null);
+  await t.fake.runtime.dispatchMessage({ type: "notice", kind: "error", text: "Nope" });
+  assert.equal(host().shadowRoot.querySelector('[role="alert"]').textContent, "Nope");
+  await t.fake.runtime.dispatchMessage({ type: "notice", kind: "status", text: "y".repeat(400) });
+  assert.equal(host().shadowRoot.querySelector('[role="status"]').textContent.length, 300);
+  await t.fake.storage.sync.set({ "d:example.com": rec() });
+  await flush();
+  assert.equal(t.isHidden("t3_a"), true, "notice does not disturb hiding");
+});
