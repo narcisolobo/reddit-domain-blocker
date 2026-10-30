@@ -106,7 +106,7 @@ Cross-posts: if the DOM exposes the original post's outbound link, match on that
 Selectors and attribute names are the builder's to verify against live pages; they can change.
 
 ### 4.2 Where it runs
-Feed (home, popular, all), subreddit pages, search results, and user profile post listings, on both old and new Reddit. **It does not run on a post's own page** (URL path contains `/comments/<id>`): nothing is hidden there, including related-post lists on that page **(call)**.
+Feed (home, popular, all), subreddit pages, and user profile post listings, on both old and new Reddit. **Search results are deliberately left alone**: someone searching for a topic should see every result, including blocked domains. **It does not run on a post's own page** (URL path contains `/comments/<id>`): nothing is hidden there, including related-post lists on that page **(call)**.
 
 Posts that appear later (infinite scroll, "load more", client-side navigation on new Reddit) are handled with a `MutationObserver`. Navigating between a listing and a post page on new Reddit (single-page app, no reload) must switch the behavior correctly in both directions. The rule keys off the current URL only: while the URL is a `/comments/` path (including when new Reddit shows a post in an overlay above a listing), the extension neither hides new posts nor restores existing stubs; when the URL returns to a listing, it rescans **(call)**.
 
@@ -270,7 +270,7 @@ Language/tooling (plain JS vs TypeScript, bundler or none), file layout, exact D
 [↑ Back to contents](#contents)
 
 ## 9. Acceptance (what "done" looks like)
-1. With `thedailybeast.com` blocked, its posts show stubs in the home feed, a subreddit, search, and a profile, on both old and new Reddit, and nothing is hidden on a post's own page.
+1. With `thedailybeast.com` blocked, its posts show stubs in the home feed, a subreddit, and a profile, on both old and new Reddit, and nothing is hidden on a post's own page or in search results.
 2. A link to `www.thedailybeast.com` and to `x.thedailybeast.com` are both hidden; `notthedailybeast.com` is not.
 3. Scrolling to load more posts hides new blocked posts without a visible flash and without breaking scroll.
 4. Adding a domain on the options page, or via right-click on a link, hides matching posts in all open Reddit tabs without reload.

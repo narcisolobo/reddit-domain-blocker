@@ -46,7 +46,7 @@ Seen on `https://old.reddit.com/r/news/` (25 posts, all links):
 - The new-Reddit post page shows more feed items below the post (an ad was visible); the spec already says nothing is hidden on a post's own page, including related-post lists.
 - Profile posts page, new Reddit: `https://www.reddit.com/user/<name>/submitted/` (verified by the owner).
 - A post page's own `shreddit-post` carries `view-context="CommentsPage"` (listings use `SubredditFeed` or `AggregateFeed`). This is a second signal for "this is a post's own page"; the URL rule stays primary.
-- Search URL: **unverified**. Assumed `/search/?q=...`; confirm in Task 14.
+- Search URL: assumed `/search/?q=...`. Search results are deliberately not blocked (owner decision during Task 14), so no markup was captured. The adapters' `isSearchPage` (`/search` and `/r/<sub>/search`) makes the blocker treat search like a post page: nothing is hidden or restored while on it, and leaving rescans.
 
 ## Navigation
 
@@ -65,3 +65,25 @@ Seen on `https://old.reddit.com/r/news/` (25 posts, all links):
 `<shreddit-post` is present in the server-rendered HTML on both a post page and a subreddit listing (verified in "View page source"; the listing's first post is already in the HTML with `content-href` and `id` set). So blocked posts exist in the first HTML Reddit sends, and a cold page load can paint them before the content script hides them. The flash is measured live in Task 14.
 
 RES is installed on purpose but is in maintenance-only mode and no longer works fully. It adds `res-*` classes and, on old Reddit, extra markup inside `.thing` entries (such as `.RESUserTag`). Test with it on, since that is the owner's setup, but nothing in the design depends on it.
+
+## M1 verification
+
+Run by the owner in their own Chrome with `extension/` loaded unpacked (the automation browser cannot open reddit.com or `chrome://extensions`), blocking `thedailybeast.com` and `newsweek.com`. Results are reported by the owner; DevTools attribute edits were done on a live post.
+
+| Spec item | Result |
+|---|---|
+| 1 Hide in place: home feed, subreddit listing, profile `/submitted`, new and old Reddit; a post's own page hides nothing | Pass |
+| 1 Search results | Not a supported page type. Search results were not hidden and no outbound link was found in their markup; the owner decided search results should stay visible, so SPEC.md, README.md and the plan were changed to say so |
+| 2 Matching, new Reddit (`content-href` edited): `www.newsweek.com`, `sub.newsweek.com` hidden; `notnewsweek.com`, `newsweek.com.evil.com`, `/r/news/comments/abc/x/`, `javascript:alert(1)`, `https://example.org/x` not hidden | Pass (all 7) |
+| 2 Matching, old Reddit (`data-url` edited): same 7 cases | Pass (all 7) |
+| 3 Infinite scroll hides new posts | Pass |
+| 4 Adding a domain hides posts in all open tabs, no reload | Pass |
+| 5 Show post reveals one post; Unblock domain restores in every tab | Pass |
+| 14 DevTools: the hidden post is still in the page, marked `data-rdb-hidden` on the `shreddit-post` element (the `article` wrapper is not marked and has no `aria-label`); the stub is a sibling inserted before it | Pass (owner pasted the element) |
+| 9 Theme: new Reddit stub dark, old Reddit stub light (screenshots); switch opposite to OS | Switch opposite to OS: owner reported pass |
+| 12 Overlay above a listing | Not applicable: new Reddit opens a post in the same tab with no overlay (M0). Replaced by a navigation check below |
+| 12 Navigation, new Reddit: listing -> post page -> Back (client-side) | Pass: a post's own page shows no stubs (it has an ad and comments, no related-posts feed); after Back the listing shows its stubs again, not doubled |
+| 12 A post revealed with Show post, opened, then Back | Still revealed after Back (revealed state lasts for the page load, as designed) |
+| Flash (spec 4.2): blocked posts painting before they are hidden, cold load and infinite scroll | Owner reported no flash. The pre-paint step in 4.2 is not needed for M1 |
+| Show post / Hide post: click and Enter on a focused button | Pass: shows and hides the entry, never opens the post or the page |
+| Console, new Reddit listing (screenshot) | Only Reddit's own messages: report-only CSP notices for its inline handlers (`ss-content.js`), preload and deprecated-meta warnings. Nothing from `content.js` or `chrome-extension://`. The 261 "errors" in the issues counter were not itemized; filtering the console by `chrome-extension` came back empty, so none are ours |

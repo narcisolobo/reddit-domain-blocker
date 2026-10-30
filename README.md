@@ -4,13 +4,13 @@ A Chrome extension that hides Reddit posts by the domain they link to.
 
 Say a few outlets flood your feed with clickbait. Add their domains once, and their posts disappear from Reddit. Each hidden post leaves a small stub ("Hidden: example.com") so you know the extension is working, and you can still peek at the post.
 
-> **Status: spec only.** There is no code yet, so there is nothing to install. The full design is in [SPEC.md](SPEC.md).
+> **Status: M1 is implemented and loadable.** Build with `npm install && npm run build`, then load `extension/` unpacked. It has been checked by hand on new and old Reddit; see `NOTES.md` for the results. The archive section, hit counts, the right-click menu, and import/export are still to come (M2 onward). The full design is in [SPEC.md](SPEC.md).
 
 ## What it will do
 
 - Hide posts whose link domain is on your list. Blocking `example.com` also blocks `news.example.com`, but not `notexample.com`.
 - Work on old.reddit.com and new Reddit, including posts that load as you scroll.
-- Hide posts in the home feed, subreddits, search results, and user profiles. A post you open on its own page is left alone.
+- Hide posts in the home feed, subreddits, and user profiles. Search results and a post you open on its own page are left alone.
 - Show a stub in place of each hidden post, with **Show post** and **Unblock domain** buttons. The stub matches Reddit's light or dark theme.
 - Let you manage the list on an options page: paste a domain or a full URL and it is cleaned up to a bare hostname. Removing a domain archives it, so you can restore it later. Each domain shows how many posts it has hidden.
 - Add a **Block this domain** entry to the right-click menu on links, on Reddit only.
@@ -31,7 +31,12 @@ The extension makes no network requests, collects nothing, and loads no remote c
 
 ## Building and installing
 
-Not available yet. Once there is code, this section will explain how to load it in Chrome with **Load unpacked** at `chrome://extensions`.
+```
+npm install
+npm run build
+```
+
+Then open `chrome://extensions`, turn on **Developer mode**, choose **Load unpacked**, and select the `extension/` folder. Run the tests with `npm test`.
 
 ## License
 

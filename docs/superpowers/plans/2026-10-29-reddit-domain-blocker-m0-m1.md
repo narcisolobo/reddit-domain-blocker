@@ -77,7 +77,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
 - Produces: `npm test` (runs `node --test`), `npm run build` (esbuild, IIFE, entries `src/content/index.js`→`extension/content.js`, `src/background/index.js`→`extension/background.js`, `src/options/index.js`→`extension/options.js`; missing entry files are skipped with a warning until their task creates them).
 - Produces `createFakeChrome(): FakeChrome` in `test/helpers/fake-chrome.js`: `storage.sync` and `storage.local` with `get(keys|null)`, `set(obj)`, `remove(keys)` returning Promises; `storage.onChanged.addListener(fn)` called as `fn(changes, areaName)` with `{key: {oldValue, newValue}}`; `fake.storage.sync.failNextSet(error)`; `runtime.sendMessage(msg)` → delegates to a handler set by `fake.runtime.setMessageHandler(fn)`, rejects with `Error("Extension context invalidated.")` after `fake.runtime.invalidate()`; `runtime.onMessage.addListener(fn)` and `fake.runtime.dispatchMessage(msg)` → Promise of the `sendResponse` value; `runtime.openOptionsPage` and `action.onClicked.addListener` with `fake.action.click()`.
 
-- [ ] **Step 1: Write the failing test** `test/manifest.test.js`:
+- [x] **Step 1: Write the failing test** `test/manifest.test.js`:
   ```js
   test("manifest is MV3 with the spec's permissions", () => {
     const m = JSON.parse(readFileSync("extension/manifest.json", "utf8"));
@@ -91,10 +91,10 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
     assert.equal(m.options_ui.open_in_tab, true);
   });
   ```
-- [ ] **Step 2: Run** `npm test` → FAIL (no manifest).
-- [ ] **Step 3: Create** `package.json` (`"type": "module"`, `"license": "MIT"`, author "Narciso Lobo", scripts, devDependencies `esbuild`, `jsdom`, `@tabler/icons`), `extension/manifest.json` (name "Reddit Domain Blocker", `action: {}` with no popup, `options_ui: {page: "options.html", open_in_tab: true}`), `scripts/build.js`, and the fake-chrome helper described above. Run `npm install`.
-- [ ] **Step 4: Run** `npm test` → PASS. Run `npm run build` → exits 0 with "skipped" warnings.
-- [ ] **Step 5: Commit** `chore: scaffold extension, build, and test helpers`.
+- [x] **Step 2: Run** `npm test` → FAIL (no manifest).
+- [x] **Step 3: Create** `package.json` (`"type": "module"`, `"license": "MIT"`, author "Narciso Lobo", scripts, devDependencies `esbuild`, `jsdom`, `@tabler/icons`), `extension/manifest.json` (name "Reddit Domain Blocker", `action: {}` with no popup, `options_ui: {page: "options.html", open_in_tab: true}`), `scripts/build.js`, and the fake-chrome helper described above. Run `npm install`.
+- [x] **Step 4: Run** `npm test` → PASS. Run `npm run build` → exits 0 with "skipped" warnings.
+- [x] **Step 5: Commit** `chore: scaffold extension, build, and test helpers`.
 
 ---
 
@@ -107,7 +107,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
 - Consumes: SVGs in `node_modules/@tabler/icons/icons/outline/`.
 - Produces: `export function icon(name: IconName, size?: number): string`, returning inline SVG markup with `aria-hidden="true"`, `focusable="false"`, `width`/`height` = `size` (default 16), `stroke="currentColor"`. `IconName` = `"plus" | "trash" | "eye" | "eye-off" | "ban" | "arrow-back-up"`. (`eye-off` is added to the spec's icon list for the collapse control; this plan's call.) `npm run gen-icons` regenerates `src/shared/icons.js`.
 
-- [ ] **Step 1: Write the failing test** `test/icons.test.js`:
+- [x] **Step 1: Write the failing test** `test/icons.test.js`:
   ```js
   for (const name of ["plus","trash","eye","eye-off","ban","arrow-back-up"]) {
     test(`icon(${name}) is decorative inline svg`, () => {
@@ -119,10 +119,10 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   test("size is applied", () => assert.match(icon("plus", 20), /width="20"/));
   test("unknown name throws", () => assert.throws(() => icon("nope")));
   ```
-- [ ] **Step 2: Run** `node --test test/icons.test.js` → FAIL.
-- [ ] **Step 3: Implement** `scripts/gen-icons.js`: read the six SVG files, emit `src/shared/icons.js` with the `icon()` function above. Create `THIRD_PARTY_LICENSES` with Tabler's copyright line and MIT text copied from `node_modules/@tabler/icons/LICENSE`.
-- [ ] **Step 4: Run** `npm run gen-icons && node --test test/icons.test.js` → PASS.
-- [ ] **Step 5: Commit** `feat: add bundled Tabler icons and third-party notice`.
+- [x] **Step 2: Run** `node --test test/icons.test.js` → FAIL.
+- [x] **Step 3: Implement** `scripts/gen-icons.js`: read the six SVG files, emit `src/shared/icons.js` with the `icon()` function above. Create `THIRD_PARTY_LICENSES` with Tabler's copyright line and MIT text copied from `node_modules/@tabler/icons/LICENSE`.
+- [x] **Step 4: Run** `npm run gen-icons && node --test test/icons.test.js` → PASS.
+- [x] **Step 5: Commit** `feat: add bundled Tabler icons and third-party notice`.
 
 ---
 
@@ -139,7 +139,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `export function hostnameOf(href: string): string | null` (http/https only, lowercase, no trailing dot, `null` otherwise)
   - `export function findBlockingDomain(hostname: string, activeDomains: Iterable<string>): string | null` (the longest matching entry)
 
-- [ ] **Step 1: Write the failing tests**:
+- [x] **Step 1: Write the failing tests**:
   ```js
   test("normalizes a pasted URL", () =>
     assert.deepEqual(normalizeInput("https://www.example.com:8080/a/b?c=d#e"), { ok: true, domain: "example.com" }));
@@ -179,10 +179,10 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
     assert.equal(findBlockingDomain("example.com", []), null);
   });
   ```
-- [ ] **Step 2: Run** `node --test test/domain.test.js` → FAIL.
-- [ ] **Step 3: Implement** per the signatures. Use `new URL()` for parsing (prefix `https://` when the input has no `scheme://`); reject non-http(s) schemes; IP detection covers dotted IPv4 and bracketed IPv6.
-- [ ] **Step 4: Run** → PASS.
-- [ ] **Step 5: Commit** `feat: add domain normalization and matching`.
+- [x] **Step 2: Run** `node --test test/domain.test.js` → FAIL.
+- [x] **Step 3: Implement** per the signatures. Use `new URL()` for parsing (prefix `https://` when the input has no `scheme://`); reject non-http(s) schemes; IP detection covers dotted IPv4 and bracketed IPv6.
+- [x] **Step 4: Run** → PASS.
+- [x] **Step 5: Commit** `feat: add domain normalization and matching`.
 
 ---
 
@@ -202,7 +202,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `export function recordsFromItems(items: Record<string, unknown>): DomainRecord[]` (skips anything `fromStored` rejects)
   - `export function activeDomains(records: DomainRecord[]): string[]`
 
-- [ ] **Step 1: Write the failing tests**:
+- [x] **Step 1: Write the failing tests**:
   ```js
   test("round trip, active omits x", () => {
     const rec = { domain:"example.com", status:"active", addedAt:1793297667000, updatedAt:1793297667000, archivedAt:null, source:"options" };
@@ -223,10 +223,10 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   });
   test("activeDomains filters archived", () => assert.deepEqual(activeDomains([active, archived]), ["example.com"]));
   ```
-- [ ] **Step 2: Run** `node --test test/records.test.js` → FAIL.
-- [ ] **Step 3: Implement** per the signatures.
-- [ ] **Step 4: Run** → PASS.
-- [ ] **Step 5: Commit** `feat: add compact domain record encoding`.
+- [x] **Step 2: Run** `node --test test/records.test.js` → FAIL.
+- [x] **Step 3: Implement** per the signatures.
+- [x] **Step 4: Run** → PASS.
+- [x] **Step 5: Commit** `feat: add compact domain record encoding`.
 
 ---
 
@@ -244,7 +244,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `export function listRecords(area): Promise<DomainRecord[]>`
   - `export function handleMessage(msg, area, now?: number): Promise<object>` where `msg` is `{ type: "domain/add", input, source }` or `{ type: "domain/archive", domain }`; unknown types resolve `{ ok: false, reason: "error" }`.
 
-- [ ] **Step 1: Write the failing tests** (using `createFakeChrome().storage.sync`):
+- [x] **Step 1: Write the failing tests** (using `createFakeChrome().storage.sync`):
   ```js
   test("add stores a compact active record", async () => {
     const r = await addDomain(area, "https://www.thedailybeast.com/x?y=1", "options", 1000);
@@ -264,10 +264,10 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   test("any other write failure is reason error", async () => {});
   test("handleMessage routes add and archive and rejects unknown types", async () => {});
   ```
-- [ ] **Step 2: Run** `node --test test/blocklist.test.js` → FAIL.
-- [ ] **Step 3: Implement** per the signatures. Quota detection: error message matches `/quota/i`.
-- [ ] **Step 4: Run** → PASS.
-- [ ] **Step 5: Commit** `feat: add blocklist add and archive operations`.
+- [x] **Step 2: Run** `node --test test/blocklist.test.js` → FAIL.
+- [x] **Step 3: Implement** per the signatures. Quota detection: error message matches `/quota/i`.
+- [x] **Step 4: Run** → PASS.
+- [x] **Step 5: Commit** `feat: add blocklist add and archive operations`.
 
 ---
 
@@ -280,7 +280,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
 - Consumes: `handleMessage` (Task 6); global `chrome` (injectable for tests via `export function init(chrome)`; the module calls `init(globalThis.chrome)` only when `chrome` exists).
 - Produces: `export function init(chromeApi): void`: registers `runtime.onMessage` (returns `true` and responds asynchronously with `handleMessage(msg, chromeApi.storage.sync)`) and `action.onClicked` → `runtime.openOptionsPage()`.
 
-- [ ] **Step 1: Write the failing tests**:
+- [x] **Step 1: Write the failing tests**:
   ```js
   test("add message writes sync storage and responds", async () => {
     const fake = createFakeChrome(); init(fake);
@@ -290,10 +290,10 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   });
   test("toolbar click opens the options page", () => { init(fake); fake.action.click(); assert.equal(fake.runtime.openOptionsPage.calls, 1); });
   ```
-- [ ] **Step 2: Run** `node --test test/background.test.js` → FAIL.
-- [ ] **Step 3: Implement** per the signature.
-- [ ] **Step 4: Run** → PASS, then `npm run build` produces `extension/background.js`.
-- [ ] **Step 5: Commit** `feat: add service worker message handling`.
+- [x] **Step 2: Run** `node --test test/background.test.js` → FAIL.
+- [x] **Step 3: Implement** per the signature.
+- [x] **Step 4: Run** → PASS, then `npm run build` produces `extension/background.js`.
+- [x] **Step 5: Commit** `feat: add service worker message handling`.
 
 ---
 
@@ -311,7 +311,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `export function pickAdapter(hostname: string): Adapter` (`old.reddit.com` → old, otherwise new)
   - `postInfo.href` is the outbound link only when it is an `http(s)` URL whose host is not a protected Reddit domain; otherwise `null` (permalinks, relative URLs, `javascript:`/`mailto:`, empty).
 
-- [ ] **Step 1: Write the failing tests** using jsdom to load each fixture. Names and assertions (selectors and attribute names come from `NOTES.md`):
+- [x] **Step 1: Write the failing tests** using jsdom to load each fixture. Names and assertions (selectors and attribute names come from `NOTES.md`):
   - `new: link post exposes id and outbound href` (`postInfo(fixture).href` equals the fixture's real link; `id` equals its post id)
   - `new: self post, gallery post, and crosspost have href null`
   - `old: link post exposes id (data-fullname) and href (data-url)`; `old: self post and gallery post have href null`; `old: crosspost href comes from data-url (null in the fixture because the original is Reddit-hosted; with data-url set to an external URL it returns that URL)`
@@ -319,10 +319,10 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `findPosts finds every post under a root and none in an empty root`
   - `href null for hostile values`: set the link attribute to each of `""`, `"/r/x/comments/1/t/"`, `"javascript:alert(1)"`, `"mailto:a@b.c"`, `"https://i.redd.it/x.png"`, remove the attribute entirely → `null` each time
   - `isPostPage`: true for `https://www.reddit.com/r/news/comments/abc123/some_title/`, `https://old.reddit.com/r/news/comments/abc123/x/`, and `.../comments/abc123/`; false for `/`, `/r/news/`, `/r/all/top/?t=day`, `/user/x/submitted/`, `/search/?q=comments`, `/r/comments/` (subreddit named "comments")
-- [ ] **Step 2: Run** `node --test test/adapters.test.js` → FAIL.
-- [ ] **Step 3: Implement** per the signatures. `isPostPage` matches `/comments/<id>` as a path segment pair (`/\/comments\/[a-z0-9]+(\/|$)/i`) against the URL path only.
-- [ ] **Step 4: Run** → PASS.
-- [ ] **Step 5: Commit** `feat: add new and old Reddit post adapters`.
+- [x] **Step 2: Run** `node --test test/adapters.test.js` → FAIL.
+- [x] **Step 3: Implement** per the signatures. `isPostPage` matches `/comments/<id>` as a path segment pair (`/\/comments\/[a-z0-9]+(\/|$)/i`) against the URL path only.
+- [x] **Step 4: Run** → PASS.
+- [x] **Step 5: Commit** `feat: add new and old Reddit post adapters`.
 
 ---
 
@@ -337,13 +337,13 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `export function detectTheme(document: Document): "light" | "dark"`: uses the signal recorded in NOTES; primary signal on new Reddit is the `theme-dark` class on `html` (NOTES); if absent, falls back to the computed `color-scheme` of `html` (`dark` → dark), then to the luminance of the first non-transparent computed background among `body` and `html` (dark when luminance < 0.5). Body is transparent on new Reddit, so `body` alone is not enough.
   - `export function watchTheme(document: Document, callback: (theme: "light"|"dark") => void): () => void`: a `MutationObserver` on the attributes NOTES names (on `documentElement` and `body`); calls back only when the theme changes; the returned function disconnects.
 
-- [ ] **Step 1: Write the failing tests** (jsdom documents built from the signals in NOTES):
+- [x] **Step 1: Write the failing tests** (jsdom documents built from the signals in NOTES):
   - `detectTheme returns dark for the dark signal` / `light for the light signal` / `light when no signal and body background is white` / `dark when no signal and body background is rgb(11, 20, 22)`
   - `watchTheme calls back once on a change, not on unrelated attribute edits`, and `returned function stops callbacks`
-- [ ] **Step 2: Run** `node --test test/theme.test.js` → FAIL.
-- [ ] **Step 3: Implement** per the signatures.
-- [ ] **Step 4: Run** → PASS.
-- [ ] **Step 5: Commit** `feat: detect Reddit's current theme`.
+- [x] **Step 2: Run** `node --test test/theme.test.js` → FAIL.
+- [x] **Step 3: Implement** per the signatures.
+- [x] **Step 4: Run** → PASS.
+- [x] **Step 5: Commit** `feat: detect Reddit's current theme`.
 
 ---
 
@@ -360,7 +360,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `Stub = { element: HTMLElement, setState(s): void, setDomain(d): void, setTheme(t): void, showError(message: string): void, focusPrimary(): void }`
   - `element` is a custom host (`<div data-rdb-stub>`) with an open shadow root containing a `role="group"` bar labelled `Hidden post from <domain>`. State `hidden`: text `Hidden: <domain>`, buttons **Show post** (eye, grey outlined) and **Unblock domain** (arrow-back-up, grey outlined). State `revealed`: text `Shown: <domain>`, buttons **Hide post** (eye-off) and **Unblock domain**. Every button: icon, visible text, `title` and `aria-label` (`Show post`, `Hide post`, `Unblock <domain>`; each contains the visible text). `showError` writes into a `role="alert"` region inside the shadow root. Theme is a `data-theme` attribute on the group driving CSS custom properties (light and dark palettes, 4.5:1 text and 3:1 border contrast). The shadow root carries its own `<style>`; nothing leaks in or out. Dashed border, system font stack, visible focus ring.
 
-- [ ] **Step 1: Write the failing tests** (jsdom):
+- [x] **Step 1: Write the failing tests** (jsdom):
   - `renders hidden state text and buttons in a shadow root` (host `shadowRoot.querySelector('[role=group]')` has `aria-label` `Hidden post from example.com`; text `Hidden: example.com`; buttons named `Show post` and `Unblock example.com`)
   - `buttons have icon, title and aria-label` (each button contains an `svg[aria-hidden=true]` and a `title`)
   - `click Show post calls onShow; click Unblock calls onUnblock`
@@ -369,10 +369,10 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `showError renders role=alert text and clears when state changes`
   - `host styles do not leak: document-level CSS selecting 'button' does not apply` (assert the shadow root has its own style element and the buttons are not in the light DOM)
   - `focusPrimary focuses Show post in hidden state and Hide post in revealed state`
-- [ ] **Step 2: Run** `node --test test/stub.test.js` → FAIL.
-- [ ] **Step 3: Implement** per the signatures.
-- [ ] **Step 4: Run** → PASS.
-- [ ] **Step 5: Commit** `feat: add shadow-DOM stub for hidden posts`.
+- [x] **Step 2: Run** `node --test test/stub.test.js` → FAIL.
+- [x] **Step 3: Implement** per the signatures.
+- [x] **Step 4: Run** → PASS.
+- [x] **Step 5: Commit** `feat: add shadow-DOM stub for hidden posts`.
 
 ---
 
@@ -388,7 +388,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `Blocker = { start(): void, stop(): void, setActiveDomains(domains: string[]): void, handleUrlChange(): void }`
   - Behavior: injects one `<style>` with `[data-rdb-hidden]{display:none !important}` into `document.documentElement`; marks each blocked post's `hideTarget` nodes with `data-rdb-hidden` and inserts a stub before the first target; never removes or moves a post node. `start()` scans all posts and starts a `MutationObserver` (childList + subtree, plus attributes on the adapter's link and id attributes) that processes only added nodes and changed posts, synchronously in the observer callback. A per-page-load `Map<postId, "revealed">`; revealed posts keep their stub in `revealed` state and are not re-hidden. While `adapter.isPostPage(getUrl())` is true nothing is hidden or restored; `handleUrlChange()` re-evaluates the URL and does a full rescan on leaving a post page. `setActiveDomains` rescans: hides new matches, restores posts whose domain is no longer blocked (remove marker and stub), updates a stub whose matching entry changed, and clears revealed state for restored posts. A post node reused for a different post (id or link changed) is re-evaluated, and its old stub is reused or removed.
 
-- [ ] **Step 1: Write the failing tests** (jsdom, new-Reddit fixture posts inserted into a listing):
+- [x] **Step 1: Write the failing tests** (jsdom, new-Reddit fixture posts inserted into a listing):
   - `hides a post whose host matches and inserts a stub before it` (post node still in the DOM, marked, stub is `previousElementSibling`)
   - `matches subdomains, not lookalikes`: `news.example.com` hidden for `example.com`; `notexample.com` untouched
   - `never hides posts with no outbound link` (self post, permalink crosspost)
@@ -405,10 +405,10 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `focus: when a post that contains document.activeElement is hidden, focus moves to the stub's Show post button; Show post moves focus to Hide post; Hide post returns it to Show post`
   - `Unblock calls requestUnblock(matchingEntry); on { ok: false } the stub shows an error and the post stays hidden`
   - `stop() disconnects the observer and removes the style, markers, and stubs`
-- [ ] **Step 2: Run** `node --test test/blocker.test.js` → FAIL.
-- [ ] **Step 3: Implement** per the interface. Keep a `WeakMap<Element, { stub: Stub, id: string | null, href: string | null, domain: string }>` per post; stub theme comes from `detectTheme`, updated through `watchTheme`.
-- [ ] **Step 4: Run** → PASS.
-- [ ] **Step 5: Commit** `feat: hide matching posts in place with live updates`.
+- [x] **Step 2: Run** `node --test test/blocker.test.js` → FAIL.
+- [x] **Step 3: Implement** per the interface. Keep a `WeakMap<Element, { stub: Stub, id: string | null, href: string | null, domain: string }>` per post; stub theme comes from `detectTheme`, updated through `watchTheme`.
+- [x] **Step 4: Run** → PASS.
+- [x] **Step 5: Commit** `feat: hide matching posts in place with live updates`.
 
 ---
 
@@ -424,17 +424,17 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `requestUnblock(domain)` sends `chrome.runtime.sendMessage({ type: "domain/archive", domain })`; any thrown error (including "Extension context invalidated.") resolves `{ ok: false }`.
   - URL changes: if `window.navigation` exists, listen to `currentchange`; also listen to `popstate`; fall back to a 500 ms interval comparing `location.href` (use what NOTES recommends first; the others are additive). Each calls `blocker.handleUrlChange()`.
 
-- [ ] **Step 1: Write the failing tests**:
+- [x] **Step 1: Write the failing tests**:
   - `first scan uses the stored list: a matching post present at start is hidden` (active + archived + malformed records in the fake sync area; only the active domain blocks)
   - `onChanged in sync updates all posts; local-area changes are ignored`
   - `archived or removed record restores posts`
   - `requestUnblock sends domain/archive and resolves the response`
   - `requestUnblock resolves { ok: false } after fake.runtime.invalidate()`, and the stub shows an error without throwing
   - `URL change via navigation currentchange triggers handleUrlChange` and `interval fallback triggers it when window.navigation is absent`
-- [ ] **Step 2: Run** `node --test test/content-index.test.js` → FAIL.
-- [ ] **Step 3: Implement** per the interface.
-- [ ] **Step 4: Run** → PASS, then `npm run build` produces `extension/content.js`.
-- [ ] **Step 5: Commit** `feat: wire content script to storage, messages, and navigation`.
+- [x] **Step 2: Run** `node --test test/content-index.test.js` → FAIL.
+- [x] **Step 3: Implement** per the interface.
+- [x] **Step 4: Run** → PASS, then `npm run build` produces `extension/content.js`.
+- [x] **Step 5: Commit** `feat: wire content script to storage, messages, and navigation`.
 
 ---
 
@@ -452,7 +452,7 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `export function init(env: { chrome, document }): Promise<void>`: builds the page, loads and renders the list, re-renders on `chrome.storage.onChanged` for the sync area.
   - `extension/options.html`: `lang="en"`, `<title>Reddit Domain Blocker options</title>`, one `<h1>`, `<main>`, a `<form>` with a visible `<label for="domain-input">Domain or URL</label>`, an input, and a green **Add** button (plus icon), a `role="status"` region and a `role="alert"` region. `options.css`: light and dark via `prefers-color-scheme`, the system sans stack, generous vertical row spacing, visible focus rings, secondary-grey and red and green button classes.
 
-- [ ] **Step 1: Write the failing tests** (jsdom):
+- [x] **Step 1: Write the failing tests** (jsdom):
   - `messageFor` cases for every outcome and reason above, including `kind` values
   - `renderList shows active domains only, sorted, with caption and th scope=col`
   - `Remove button: visible text "Remove", aria-label "Remove example.com", title "Archive example.com", contains an aria-hidden svg`
@@ -462,10 +462,10 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - `clicking Remove sends domain/archive; the status region announces "Removed example.com"; focus moves to the next row's Remove button, or the input when none remain`
   - `an external storage change (a domain added elsewhere) re-renders the list without a reload`
   - `a malformed record in storage is ignored`
-- [ ] **Step 2: Run** `node --test test/options.test.js` → FAIL.
-- [ ] **Step 3: Implement** per the interfaces.
-- [ ] **Step 4: Run** → PASS, then `npm run build` produces `extension/options.js`.
-- [ ] **Step 5: Commit** `feat: add options page for adding and removing domains`.
+- [x] **Step 2: Run** `node --test test/options.test.js` → FAIL.
+- [x] **Step 3: Implement** per the interfaces.
+- [x] **Step 4: Run** → PASS, then `npm run build` produces `extension/options.js`.
+- [x] **Step 5: Commit** `feat: add options page for adding and removing domains`.
 
 ---
 
@@ -476,9 +476,9 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
 
 **Interfaces:** none.
 
-- [ ] **Step 1: Build and load.** `npm test` → all pass. `npm run build`. Load `extension/` unpacked at `chrome://extensions` (ask the user to do this and enable it if the Chrome tools cannot).
-- [ ] **Step 2: Walk the M1 acceptance items** from the spec on live Reddit, recording pass or fail and any selector fixes in `NOTES.md`:
-  - **1:** with `thedailybeast.com` added via the options page, stubs appear on the home feed, a subreddit, search, and a profile, on both old and new Reddit; a post's own page hides nothing.
+- [x] **Step 1: Build and load.** `npm test` → all pass. `npm run build`. Load `extension/` unpacked at `chrome://extensions` (ask the user to do this and enable it if the Chrome tools cannot).
+- [x] **Step 2: Walk the M1 acceptance items** from the spec on live Reddit, recording pass or fail and any selector fixes in `NOTES.md`:
+  - **1:** with `thedailybeast.com` added via the options page, stubs appear on the home feed, a subreddit, and a profile (not search results, which are deliberately left alone), on both old and new Reddit; a post's own page hides nothing.
   - **2:** a `www.` and a subdomain link are hidden; a lookalike host is not.
   - **3:** scrolling loads more posts that are hidden without breaking scroll.
   - **4:** adding a domain on the options page hides matching posts in all open Reddit tabs without a reload.
@@ -486,9 +486,9 @@ The inputs and conditions the spec implies that a real user will hit. Each has a
   - **9:** the stub follows Reddit's theme when the user switches it opposite to the OS; the options page follows the OS.
   - **12:** on new Reddit, if a post opens in an overlay above a listing (per NOTES), existing stubs stay and nothing new hides; closing it rescans.
   - **14:** inspect a hidden post in DevTools: the node is still in the page, marked `data-rdb-hidden`; removing the marker and the stub shows it.
-- [ ] **Step 3: Measure the flash** (spec 4.2): on cold load and on infinite scroll, on both sites, record whether blocked posts visibly paint before hiding (use a screen recording or a Performance trace via the Chrome tools). Record the result and, if posts do flash, note that the pre-paint step in 4.2 is a candidate for M4.
-- [ ] **Step 4: Fix** any failure by adding a failing test first in the owning task's test file, then the fix, then re-run `npm test`.
-- [ ] **Step 5: Commit** `docs: record M1 verification results`.
+- [x] **Step 3: Measure the flash** (spec 4.2): on cold load and on infinite scroll, on both sites, record whether blocked posts visibly paint before hiding (use a screen recording or a Performance trace via the Chrome tools). Record the result and, if posts do flash, note that the pre-paint step in 4.2 is a candidate for M4.
+- [x] **Step 4: Fix** any failure by adding a failing test first in the owning task's test file, then the fix, then re-run `npm test`.
+- [x] **Step 5: Commit** `docs: record M1 verification results`.
 
 ---
 
