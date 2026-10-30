@@ -1,6 +1,6 @@
 # Reddit Domain Blocker, M3 Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add **Export list** and **Import list…** to the options page: a JSON export of every record with its stats, and an import that validates, previews, merges with a larger-or-sum count choice, and refuses anything that wouldn't fit in sync storage.
 
@@ -58,7 +58,7 @@ These are the conditions a user will run into that the spec doesn't spell out. E
   - `export function itemBytes(key: string, value: unknown): number` → `key.length + JSON.stringify(value).length`.
   - `export function checkSyncLimits({ currentItems: object, bytesInUse: number, writes: object }): { ok: true } | { ok: false, reason: "too-many" | "too-large", over: number }`. Items after = current keys plus write keys not already present; `over` is items after minus 512. Bytes after = `bytesInUse`, minus `itemBytes` of each overwritten current value, plus `itemBytes` of each written value; `over` is bytes after minus (102400 − 1024). Items are checked first.
 
-- [ ] **Step 1: Write the failing tests** in `test/transfer.test.js`:
+- [x] **Step 1: Write the failing tests** in `test/transfer.test.js`:
   ```js
   test("buildExport produces the 5.4 shape with ISO dates, sorted, archived included", () => {
     const records = [rec("b.com", "archived"), rec("a.com")]; // a.com: c 1000, u 2000; b.com adds x 3000, source "m"
@@ -101,10 +101,10 @@ These are the conditions a user will run into that the spec doesn't spell out. E
   test("checkSyncLimits counts only new keys toward 512", ...);    // 510 current + 2 new ok; + 3 new -> { ok: false, reason: "too-many", over: 1 }
   test("checkSyncLimits measures bytes after overwrites", ...);    // bytesInUse near the limit; overwrite with same-size value ok; one more byte than allowed -> too-large with over 1
   ```
-- [ ] **Step 2: Run** `node --test test/transfer.test.js` and expect FAIL (module missing).
-- [ ] **Step 3: Implement** `src/shared/transfer.js` and export `validTime` from `records.js`. Convert ISO strings with `Date.parse`, and only accept strings.
-- [ ] **Step 4: Run** `npm test` and expect PASS for the whole suite.
-- [ ] **Step 5: Commit** `feat: add the export and import file format`.
+- [x] **Step 2: Run** `node --test test/transfer.test.js` and expect FAIL (module missing).
+- [x] **Step 3: Implement** `src/shared/transfer.js` and export `validTime` from `records.js`. Convert ISO strings with `Date.parse`, and only accept strings.
+- [x] **Step 4: Run** `npm test` and expect PASS for the whole suite.
+- [x] **Step 5: Commit** `feat: add the export and import file format`.
 
 ---
 
@@ -128,7 +128,7 @@ These are the conditions a user will run into that the spec doesn't spell out. E
   - `export function failureReason(err): "quota" | "error"` in `src/background/errors.js`, moved unchanged from `blocklist.js`. It lives in its own file because `blocklist.js` imports `import.js`.
   - Fake storage areas gain `getBytesInUse(keys)`, which sums `itemBytes` over the stored items (`null` means all), and `overrideBytesInUse(n)`, which makes later calls return `n`. `failNextSet` already exists on both areas.
 
-- [ ] **Step 1: Write the failing tests** in `test/import.test.js`:
+- [x] **Step 1: Write the failing tests** in `test/import.test.js`:
   ```js
   test("an import writes stats then records, one set() each", ...); // spy on both set()s: local called before sync, each once
   test("the result reports added, merged and skipped", ...);        // { ok: true, outcome: "imported", added: 1, merged: 1, skipped: 1 }
@@ -144,10 +144,10 @@ These are the conditions a user will run into that the spec doesn't spell out. E
   test("the worker plans against current storage, not the preview", ...); // Review Focus 5: add c.com after parsing the preview; the file contains c.com -> merged 1, added 0
   test("handleMessage routes domain/import", ...);
   ```
-- [ ] **Step 2: Run** `node --test test/import.test.js` and expect FAIL.
-- [ ] **Step 3: Implement** `importDomains`. Read `sync.get(null)`, `local.get(null)`, and `sync.getBytesInUse(null)`; plan; check limits against `syncItems`; write `localItems` if non-empty, then `syncItems` if non-empty. If the local write throws, nothing has changed, so return its `failureReason`. If the sync write throws, put back each written stats key's previous value (`set`) and remove the keys that had none (`remove`), then return `failureReason(err)`. Add the fake's `getBytesInUse` and `overrideBytesInUse`, and the `handleMessage` case.
-- [ ] **Step 4: Run** `npm test` and expect PASS.
-- [ ] **Step 5: Commit** `feat: import domains in the service worker with an all-or-nothing limit check`.
+- [x] **Step 2: Run** `node --test test/import.test.js` and expect FAIL.
+- [x] **Step 3: Implement** `importDomains`. Read `sync.get(null)`, `local.get(null)`, and `sync.getBytesInUse(null)`; plan; check limits against `syncItems`; write `localItems` if non-empty, then `syncItems` if non-empty. If the local write throws, nothing has changed, so return its `failureReason`. If the sync write throws, put back each written stats key's previous value (`set`) and remove the keys that had none (`remove`), then return `failureReason(err)`. Add the fake's `getBytesInUse` and `overrideBytesInUse`, and the `handleMessage` case.
+- [x] **Step 4: Run** `npm test` and expect PASS.
+- [x] **Step 5: Commit** `feat: import domains in the service worker with an all-or-nothing limit check`.
 
 ---
 
@@ -164,7 +164,7 @@ These are the conditions a user will run into that the spec doesn't spell out. E
   - Clicking Export reads both areas (fresh, not the cached render), builds the file with `now = Date.now()` and `version = chrome.runtime.getManifest().version`, and downloads it as `JSON.stringify(data, null, 2)` in a `Blob` of type `application/json`, through a temporary `<a download="<exportFilename>">`, then revokes the object URL. Use `document.defaultView.URL` and `document.defaultView.Blob`, so tests can stub `createObjectURL`, which jsdom lacks. Status: `Exported <n> domain(s)`, from a new `messageFor` outcome `"exported"` with `count`.
   - `messageFor({ ok: true, outcome: "exported", count })` → `{ kind: "status", text: "Exported 1 domain" | "Exported 3 domains" }`.
 
-- [ ] **Step 1: Write the failing tests.** Add `download` and `upload` to the names in `test/icons.test.js`. In `test/options.test.js`:
+- [x] **Step 1: Write the failing tests.** Add `download` and `upload` to the names in `test/icons.test.js`. In `test/options.test.js`:
   ```js
   test("Export list and Import list… buttons are grey outlined with icons, labels and tooltips", ...);
   test("Export downloads every record as JSON and announces it", async () => {
@@ -175,10 +175,10 @@ These are the conditions a user will run into that the spec doesn't spell out. E
   });
   test("messageFor exported pluralizes", ...);
   ```
-- [ ] **Step 2: Run** `node --test test/icons.test.js test/options.test.js` and expect FAIL.
-- [ ] **Step 3: Implement.** Add the icon names and run `npm run gen-icons`. Add the markup, the `.transfer` style (a flex row with a `0.5rem` gap and `1.5rem` top margin), the click handler, and the `messageFor` case. If reading storage throws, show the generic error.
-- [ ] **Step 4: Run** `npm test` and `npm run build`, and expect PASS and a clean build.
-- [ ] **Step 5: Commit** `feat: export the list as JSON from the options page`.
+- [x] **Step 2: Run** `node --test test/icons.test.js test/options.test.js` and expect FAIL.
+- [x] **Step 3: Implement.** Add the icon names and run `npm run gen-icons`. Add the markup, the `.transfer` style (a flex row with a `0.5rem` gap and `1.5rem` top margin), the click handler, and the `messageFor` case. If reading storage throws, show the generic error.
+- [x] **Step 4: Run** `npm test` and `npm run build`, and expect PASS and a clean build.
+- [x] **Step 5: Commit** `feat: export the list as JSON from the options page`.
 
 ---
 
@@ -206,7 +206,7 @@ These are the conditions a user will run into that the spec doesn't spell out. E
     - reason `"file-too-big"` → `That file is too large to be an export. Nothing was imported.`
   - Flow in `index.js`: **Import list…** clicks the hidden file input. On `change`, take `files[0]` (do nothing if none), then reset the input's value so the same file can be chosen again. A file over `MAX_IMPORT_BYTES` is refused as `"file-too-big"` without calling `text()`. Otherwise parse it; refuse `"unreadable"`, `"unsupported-version"`, or (when there are no entries) `"nothing-to-import"` through `show()` with no review. Else plan against the cached records and stats, render the review, and focus `#import-heading`. **Import** sends `{ type: "domain/import", text, countMode }`, clears the review, shows `messageFor(result)`, and focuses **Import list…**. **Cancel** and Escape clear the review and focus **Import list…**. Choosing a new file replaces an open review.
 
-- [ ] **Step 1: Write the failing tests** in `test/options.test.js`. Simulate a file pick by defining `files` on the input (`Object.defineProperty(input, "files", { value: [file], configurable: true })`) and dispatching `change`, with `file` a `{ name, size, text: async () => json }` object:
+- [x] **Step 1: Write the failing tests** in `test/options.test.js`. Simulate a file pick by defining `files` on the input (`Object.defineProperty(input, "files", { value: [file], configurable: true })`) and dispatching `change`, with `file` a `{ name, size, text: async () => json }` object:
   ```js
   test("picking a file shows the review with counts and skips, and focuses its heading", ...);
   test("the count choice appears only when a domain is on both sides, larger by default", ...);
@@ -219,10 +219,10 @@ These are the conditions a user will run into that the spec doesn't spell out. E
   test("a status from the worker, not the preview, is what's announced", ...); // Review Focus 5: add c.com between pick and Import -> "0 new, 1 merged" reported
   test("skipText reads naturally and the list stops at 10", ...);
   ```
-- [ ] **Step 2: Run** `node --test test/options.test.js` and expect FAIL.
-- [ ] **Step 3: Implement** `import-view.js`, the flow in `index.js`, the `messageFor` cases, and the styles: the review is a bordered band (`1px solid var(--rule)`, `6px` radius, `1rem` padding) with the fieldset's border removed and its radios stacked, and its buttons in a row with a `0.5rem` gap. Keep `role="status"` and `role="alert"` as the only live regions; the review itself isn't live, because focus moves to its heading.
-- [ ] **Step 4: Run** `npm test` and `npm run build`, and expect PASS and a clean build.
-- [ ] **Step 5: Commit** `feat: review and import an exported list on the options page`.
+- [x] **Step 2: Run** `node --test test/options.test.js` and expect FAIL.
+- [x] **Step 3: Implement** `import-view.js`, the flow in `index.js`, the `messageFor` cases, and the styles: the review is a bordered band (`1px solid var(--rule)`, `6px` radius, `1rem` padding) with the fieldset's border removed and its radios stacked, and its buttons in a row with a `0.5rem` gap. Keep `role="status"` and `role="alert"` as the only live regions; the review itself isn't live, because focus moves to its heading.
+- [x] **Step 4: Run** `npm test` and `npm run build`, and expect PASS and a clean build.
+- [x] **Step 5: Commit** `feat: review and import an exported list on the options page`.
 
 ---
 
@@ -233,7 +233,7 @@ These are the conditions a user will run into that the spec doesn't spell out. E
 
 The automation browser can't open `chrome://extensions`, so the owner runs these in their own Chrome with `extension/` loaded unpacked and reports back.
 
-- [ ] **Step 1: The owner runs the checks:**
+- [x] **Step 1: The owner runs the checks:**
   1. Export downloads `reddit-domain-blocker-<date>.json`. It holds every active and archived domain with ISO dates and counts, and the status line says how many.
   2. In a fresh Chrome profile, loading the extension and importing that file reproduces the list, the dates, the archived entries, and the counts (acceptance 7).
   3. Importing the same file again with **Use the larger count** leaves every count and date unchanged. With **Add the two counts together**, counts double.
@@ -242,6 +242,6 @@ The automation browser can't open `chrome://extensions`, so the owner runs these
   6. With a Reddit tab open, an import that adds an active domain hides its posts without a reload.
   7. Keyboard only: Export, Import list…, choosing a file, the radios, Import, Cancel, and Escape all work, and focus lands on the review heading and returns to Import list….
   8. The service worker console has no errors.
-- [ ] **Step 2: Fix any failures**, one commit per fix, each with a test where jsdom can express it.
-- [ ] **Step 3: Record the results** in `NOTES.md` under `## M3 verification`, in the same table form as M1 and M2. Update the `README.md` status line: M3 is implemented and checked by hand, and polish and the accessibility sign-off (M4) are still to come. Tick this plan's boxes.
-- [ ] **Step 4: Commit** `docs: record M3 verification`.
+- [x] **Step 2: Fix any failures**, one commit per fix, each with a test where jsdom can express it.
+- [x] **Step 3: Record the results** in `NOTES.md` under `## M3 verification`, in the same table form as M1 and M2. Update the `README.md` status line: M3 is implemented and checked by hand, and polish and the accessibility sign-off (M4) are still to come. Tick this plan's boxes.
+- [x] **Step 4: Commit** `docs: record M3 verification`.
