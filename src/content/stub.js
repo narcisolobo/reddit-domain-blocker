@@ -1,28 +1,12 @@
 import { icon } from "../shared/icons.js";
+import { paletteCss } from "./palette.js";
 
 const STYLE = `
 :host {
   all: initial;
   display: block;
 }
-.bar {
-  --rdb-bg: #f6f7f8;
-  --rdb-fg: #1c1c1c;
-  --rdb-border: #6b7280;
-  --rdb-btn-bg: #ffffff;
-  --rdb-btn-hover: #e9ebed;
-  --rdb-focus: #005fcc;
-  --rdb-error: #b3261e;
-}
-.bar[data-theme="dark"] {
-  --rdb-bg: #1a1a1b;
-  --rdb-fg: #e8eaed;
-  --rdb-border: #8b949e;
-  --rdb-btn-bg: #272729;
-  --rdb-btn-hover: #343437;
-  --rdb-focus: #4d90fe;
-  --rdb-error: #ff8a80;
-}
+${paletteCss(".bar")}
 .bar {
   box-sizing: border-box;
   display: flex;

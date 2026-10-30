@@ -1,8 +1,7 @@
 import { icon } from "../shared/icons.js";
+import { paletteCss } from "./palette.js";
 import { detectTheme } from "./theme.js";
 
-// Palette values mirror the stub's (src/content/stub.js); duplicated rather
-// than shared so the stub stays untouched.
 const STYLE = `
 :host {
   all: initial;
@@ -13,24 +12,7 @@ const STYLE = `
   z-index: 2147483647;
   max-width: min(560px, calc(100vw - 32px));
 }
-.box {
-  --rdb-bg: #f6f7f8;
-  --rdb-fg: #1c1c1c;
-  --rdb-border: #6b7280;
-  --rdb-btn-bg: #ffffff;
-  --rdb-btn-hover: #e9ebed;
-  --rdb-focus: #005fcc;
-  --rdb-error: #b3261e;
-}
-.box[data-theme="dark"] {
-  --rdb-bg: #1a1a1b;
-  --rdb-fg: #e8eaed;
-  --rdb-border: #8b949e;
-  --rdb-btn-bg: #272729;
-  --rdb-btn-hover: #343437;
-  --rdb-focus: #4d90fe;
-  --rdb-error: #ff8a80;
-}
+${paletteCss(".box")}
 .box {
   box-sizing: border-box;
   display: flex;
