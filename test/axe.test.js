@@ -21,7 +21,8 @@ const AXE_OPTIONS = {
 
 // Incomplete rule ids that jsdom cannot evaluate; any other incomplete result fails.
 const CANNOT_EVALUATE_IN_JSDOM = new Set([
-  // Each radio has exactly one wrapping <label>; the check cannot confirm label visibility without layout.
+  // Each import-review radio has exactly one wrapping <label> and no id; in jsdom, axe's
+  // label[for=id] lookup on an id-less input comes back incomplete rather than passing.
   "form-field-multiple-labels",
 ]);
 

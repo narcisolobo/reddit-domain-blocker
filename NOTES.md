@@ -157,4 +157,4 @@ Run by the owner in their own Chrome with `extension/` loaded unpacked. Numbers 
 - Closed: M3's open item (the Archived table running past a 375px viewport, short domains breaking mid-word) is covered by the icon-only buttons and stacked rows, checked in 2.
 - Closed: M2's notice focus fix ("Needs a re-check in Chrome") is confirmed in Chrome by check 6.
 - Open: NVDA/JAWS run (check 7), when a Windows machine is available.
-- Open, minor: in `test/axe.test.js`, the comment on the `form-field-multiple-labels` allow-list entry blames layout. The real cause is axe's `label[for=id]` lookup on the import review's id-less radios in jsdom. The markup is correct; either fix the comment, or give the radios ids and drop the entry.
+- Fixed: in `test/axe.test.js`, the comment on the `form-field-multiple-labels` allow-list entry blamed layout. The real cause is axe's `label[for=id]` lookup on the import review's id-less radios in jsdom; the comment now says so. The markup is correct and was left unchanged, since it had just been signed off by hand.
