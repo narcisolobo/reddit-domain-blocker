@@ -4,6 +4,8 @@ A Chrome extension that hides Reddit posts by the domain they link to.
 
 Say a few outlets flood your feed with clickbait. Add their domains once, and their posts disappear from Reddit. Each hidden post leaves a small stub ("Hidden: example.com") so you know the extension is working, and you can still peek at the post.
 
+**[Install it from the Chrome Web Store](https://chromewebstore.google.com/detail/mfjlfffnnmelpbbjoafienheobeigijk)**
+
 > **Status: complete.** Every milestone (M0–M4) is built and has been checked by hand on new and old Reddit; the results are in [NOTES.md](NOTES.md). The one open item is a run with a Windows screen reader (NVDA or JAWS). VoiceOver on macOS has been checked.
 
 ## What it does
@@ -38,7 +40,9 @@ The extension makes no network requests, collects nothing, and loads no remote c
 | [scripts/](scripts/) | The esbuild build and two icon generators: Tabler glyphs for the UI (`gen-icons`) and the extension icon PNGs (`gen-app-icons`) |
 | [LICENSE](LICENSE) | MIT license |
 
-## Building and installing
+## Building from source
+
+The store version is the easy route. To build and load it yourself:
 
 ```
 npm install
